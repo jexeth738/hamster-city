@@ -72,7 +72,7 @@ const Live = {
     if (this.debug) {
       let pr = this.progress + (this.status === 'ACTIVE' ? 0.035 + this.rpm / 2000 : 0); let h = this.height;
       if (pr >= 1) { pr -= 1; h++; }
-      this.apply({ status: this.status, rpm: this.status === 'ACTIVE' ? (this.debug === 'zoomies' ? 66 : 34) + Math.sin(this.simT / 3) * 6 : 0, speed: this.status === 'ACTIVE' ? 260 : 0, height: h, progress: pr });
+      this.apply({ status: this.status, rpm: this.status === 'ACTIVE' ? (this.debug === 'zoomies' ? 80 : 34) + Math.sin(this.simT / 3) * 6 : 0, speed: this.status === 'ACTIVE' ? 260 : 0, height: h, progress: pr });
       return;
     }
     // natural cycle: 90s running, 60s sleeping
