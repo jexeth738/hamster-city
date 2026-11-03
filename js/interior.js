@@ -4,7 +4,7 @@ class InteriorScene extends WorldScene {
   constructor() { super('Interior'); }
   init(data) { this.door = data.door; this.def = INTERIORS[this.door.interior]; }
   create() {
-    const def = this.def, door = this.door; G.area = door.id; this.vehicle = null;
+    const def = this.def, door = this.door; G.area = door.id; this.vehicle = null; this.leaving = false; this.alarm = false;
     this.flip = door.interior === 'house' && door.variant % 2 === 1;
     this.fx = x => this.flip ? 1024 - x : x;
     const rects = def.walls.concat(def.solids);
