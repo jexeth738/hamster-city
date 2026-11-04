@@ -54,19 +54,24 @@ const HELP_PAGES = [
 ];
 function showHelp(scene, onClose, startPage = 0) {
   const c = scene.add.container(0, 0).setDepth(95); let page = startPage;
-  c.add(scene.add.rectangle(0, 0, GW, GH, 0x000000, 0.7).setOrigin(0).setInteractive());
-  c.add(panel(scene, 110, 60, GW - 220, GH - 120, 0.96, 0xffd166));
-  c.add(scene.add.image(200, 150, 'portrait4').setDisplaySize(130, 130));
-  c.add(scene.add.text(280, 92, 'GRANDPA NIBBLES\' GUIDE', { fontFamily: '"Press Start 2P"', fontSize: '13px', color: '#f0dfb8' }));
-  const title = scene.add.text(280, 120, '', { fontFamily: '"Press Start 2P"', fontSize: '24px', color: '#ffd166' });
-  const body = scene.add.text(160, 236, '', { fontFamily: 'VT323', fontSize: '27px', color: '#e6efff', lineSpacing: 3 });
-  const tabs = HELP_PAGES.map((p, i) => { const t = scene.add.text(280 + i * 150, 168, `${i + 1}`, { fontFamily: '"Press Start 2P"', fontSize: '12px', color: '#fff', backgroundColor: '#1d2747', padding: { x: 10, y: 6 } }).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = i; draw(); }); return t; });
-  const nav = scene.add.text(GW / 2, GH - 92, '< A / LEFT     page     RIGHT / D >        Esc / tap X to close', { fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#9fb6d9' }).setOrigin(0.5);
-  const prev = scene.add.text(140, GH - 104, '<', { fontFamily: '"Press Start 2P"', fontSize: '26px', color: '#ffd166' }).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = (page + HELP_PAGES.length - 1) % HELP_PAGES.length; draw(); });
-  const next = scene.add.text(GW - 165, GH - 104, '>', { fontFamily: '"Press Start 2P"', fontSize: '26px', color: '#ffd166' }).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = (page + 1) % HELP_PAGES.length; draw(); });
-  const close = scene.add.text(GW - 150, 80, 'X', { fontFamily: '"Press Start 2P"', fontSize: '22px', color: '#ff7b7b' }).setInteractive({ useHandCursor: true }).on('pointerdown', () => done());
+  const big = UW >= 1200 && UH >= 680; const mx = big ? 110 : 22, my = big ? 60 : 10; const pw = UW - mx * 2, ph = UH - my * 2; const ps = big ? 130 : 92;
+  const touch = Controls.isTouch || VIEW.touch;
+  c.add(scene.add.rectangle(0, 0, UW, UH, 0x000000, 0.7).setOrigin(0).setInteractive());
+  c.add(panel(scene, mx, my, pw, ph, 0.96, 0xffd166));
+  c.add(scene.add.image(mx + 24 + ps / 2, my + 20 + ps / 2, 'portrait4').setDisplaySize(ps, ps));
+  const tx = mx + ps + 50;
+  c.add(scene.add.text(tx, my + (big ? 32 : 18), 'GRANDPA NIBBLES\' GUIDE', { fontFamily: '"Press Start 2P"', fontSize: '13px', color: '#f0dfb8' }));
+  const title = scene.add.text(tx, my + (big ? 60 : 42), '', { fontFamily: '"Press Start 2P"', fontSize: big ? '24px' : '20px', color: '#ffd166' });
+  const tabY = my + (big ? 108 : 76);
+  const bodyY = my + Math.max(ps + 34, big ? 176 : 120); const bodyW = pw - 90; const bodyH = ph - (bodyY - my) - 54;
+  const body = scene.add.text(mx + 50, bodyY, '', { fontFamily: 'VT323', fontSize: '27px', color: '#e6efff', lineSpacing: 3, wordWrap: { width: bodyW } });
+  const tabs = HELP_PAGES.map((p, i) => { const t = scene.add.text(tx, tabY, `${i + 1}`, { fontFamily: '"Press Start 2P"', fontSize: big ? '12px' : '11px', color: '#fff', backgroundColor: '#1d2747', padding: { x: big ? 10 : 8, y: big ? 6 : 8 } }).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = i; draw(); }); return t; });
+  const nav = scene.add.text(UW / 2, my + ph - 30, touch ? 'tap  <  >  or the tabs  ·  X to close' : '< A / LEFT     page     RIGHT / D >        Esc / tap X to close', { fontFamily: '"Press Start 2P"', fontSize: '10px', color: '#9fb6d9' }).setOrigin(0.5);
+  const prev = scene.add.text(mx + 22, my + ph - 48, '<', { fontFamily: '"Press Start 2P"', fontSize: '26px', color: '#ffd166', padding: { x: 10, y: 6 } }).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = (page + HELP_PAGES.length - 1) % HELP_PAGES.length; draw(); });
+  const next = scene.add.text(mx + pw - 22, my + ph - 48, '>', { fontFamily: '"Press Start 2P"', fontSize: '26px', color: '#ffd166', padding: { x: 10, y: 6 } }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => { page = (page + 1) % HELP_PAGES.length; draw(); });
+  const close = scene.add.text(mx + pw - 16, my + 14, 'X', { fontFamily: '"Press Start 2P"', fontSize: '22px', color: '#ff7b7b', padding: { x: 10, y: 8 } }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerdown', () => done());
   c.add([title, body, ...tabs, nav, prev, next, close]);
-  function draw() { title.setText(HELP_PAGES[page].title); body.setText(HELP_PAGES[page].lines.join('\n')); tabs.forEach((t, i) => t.setText(`${i + 1} ${HELP_PAGES[i].title.split(' ')[0]}`).setPosition(280 + tabs.slice(0, i).reduce((s, o) => s + o.width + 8, 0), 168).setBackgroundColor(i === page ? '#6a4f12' : '#1d2747')); Sound.sfx('blip'); }
+  function draw() { title.setText(HELP_PAGES[page].title); body.setFontSize(27).setText(HELP_PAGES[page].lines.join('\n')); let fs = 27; while (body.height > bodyH && fs > 17) { fs--; body.setFontSize(fs); } tabs.forEach((t, i) => t.setText(`${i + 1} ${HELP_PAGES[i].title.split(' ')[0]}`).setPosition(tx + tabs.slice(0, i).reduce((s, o) => s + o.width + 8, 0), tabY).setBackgroundColor(i === page ? '#6a4f12' : '#1d2747')); Sound.sfx('blip'); }
   const key = e => { const k = e.key.toLowerCase(); if (k === 'arrowleft' || k === 'a') { page = (page + HELP_PAGES.length - 1) % HELP_PAGES.length; draw(); } else if (k === 'arrowright' || k === 'd' || k === 'enter' || k === 'e' || k === ' ') { if (page === HELP_PAGES.length - 1 && (k === 'enter' || k === 'e')) return done(); page = (page + 1) % HELP_PAGES.length; draw(); } else if (k === 'escape' || k === 'h' || k === 'p') done(); };
   scene.input.keyboard.on('keydown', key);
   let closed = false;

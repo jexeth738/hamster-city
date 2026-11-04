@@ -37,7 +37,7 @@ class InteriorScene extends WorldScene {
     BUS.emit('banner', { text: door.name.toUpperCase(), sub: this.areaHint(), color: '#ffffff', small: true });
     MissionSys.tick(0, { area: door.interior, door: door.id });
     this.dead = false; this.syncKey = undefined; this.syncMission(); const so = () => this.syncMission(); BUS.on('objective', so); this.events.once('shutdown', () => { this.dead = true; BUS.off('objective', so); });
-    this.time.delayedCall(900, () => { Helper.hint('interior', 'You are inside! Sparkling seeds can be stolen with E. If a guard sees you steal, you get a star. Walk out through the green arrow.'); if (def.restricted) Helper.hint('restricted_' + door.interior, 'Careful: this is a restricted area. If security spots you hanging around here, the alarm goes off.'); });
+    this.time.delayedCall(Controls.isTouch ? 3000 : 900, () => { Helper.hint('interior', 'You are inside! Sparkling seeds can be stolen with E. If a guard sees you steal, you get a star. Walk out through the green arrow.'); if (def.restricted) Helper.hint('restricted_' + door.interior, 'Careful: this is a restricted area. If security spots you hanging around here, the alarm goes off.'); });
   }
   areaHint() { const k = this.door.interior; return { house: 'Snacks inside. Mind the owner.', petshop: 'Cages, cash register, treats.', grocery: 'Seeds galore. The store cat is watching.', bank: 'Vault behind the counters. Robo-vacs on patrol.', garage: 'Tools, cash and car keys.', lab: 'Home of Squeektoshi. Security everywhere.' }[k]; }
   syncMission() {

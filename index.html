@@ -14,13 +14,31 @@
 <style>
 @font-face { font-family: "Press Start 2P"; src: url(fonts/PressStart2P.ttf) format("truetype"); font-display: block; }
 @font-face { font-family: "VT323"; src: url(fonts/VT323.ttf) format("truetype"); font-display: block; }
-html, body { margin: 0; padding: 0; background: #050816; height: 100%; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
-#game { width: 100vw; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+html, body { margin: 0; padding: 0; background: #050816; width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+body { position: fixed; inset: 0; }
+#wrap { position: fixed; inset: 0; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+#game { width: 100%; height: 100%; overflow: hidden; }
+#game canvas { display: block; }
+#rotate { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(5, 8, 22, 0.94); color: #ffd166; font-family: "Press Start 2P", monospace; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; box-sizing: border-box; }
+#rotate img { width: 110px; animation: tilt 1.6s ease-in-out infinite; image-rendering: auto; }
+#rotate p { margin: 0; font-size: 15px; line-height: 1.7; }
+#rotate small { font-family: VT323, monospace; font-size: 22px; color: #cfe6ff; }
+#rotate button { font-family: "Press Start 2P", monospace; font-size: 11px; color: #fff; background: #0a0f22; border: 2px solid #6ad7ff; border-radius: 10px; padding: 12px 16px; }
+#rotate button.main { border-color: #ffd166; color: #ffd166; font-size: 12px; }
+@keyframes tilt { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+@media (orientation: portrait) and (pointer: coarse) { body:not(.portrait-ok) #rotate { display: flex; } }
 .pre { position: absolute; left: -999px; font-family: "Press Start 2P"; } .pre2 { position: absolute; left: -999px; font-family: VT323; }
 </style>
 </head>
 <body>
-<div id="game"></div>
+<div id="wrap"><div id="game"></div></div>
+<div id="rotate">
+  <img src="assets/ham_classic_run.png" alt="">
+  <p>ROTATE YOUR PHONE<br>TO LANDSCAPE</p>
+  <small>Squeek City plays best sideways</small>
+  <button class="main" id="fsBtn">FULLSCREEN + LANDSCAPE</button>
+  <button id="anyway">play in portrait anyway</button>
+</div>
 <span class="pre">.</span><span class="pre2">.</span>
 <script src="lib/phaser.min.js"></script>
 <script src="js/data.js"></script>
@@ -34,5 +52,15 @@ html, body { margin: 0; padding: 0; background: #050816; height: 100%; overflow:
 <script src="js/ui.js"></script>
 <script src="js/boot.js"></script>
 <script src="js/main.js"></script>
+<script>
+function goFull() {
+  const d = document.documentElement; const rq = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (rq) { try { const p = rq.call(d, { navigationUI: 'hide' }); const lock = () => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }; if (p && p.then) p.then(lock).catch(() => {}); else lock(); } catch (e) {} }
+}
+window.goFull = goFull;
+document.getElementById('fsBtn').onclick = goFull;
+if (!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen)) document.getElementById('fsBtn').style.display = 'none';
+document.getElementById('anyway').onclick = () => document.body.classList.add('portrait-ok');
+</script>
 </body>
 </html>

@@ -1,5 +1,20 @@
 // ===== Squeek City — static data =====
-const GW = 1280, GH = 720;
+// ---- responsive view: logical height 720, width follows the (landscape) screen aspect ----
+const VIEW = (() => {
+  const q = new URLSearchParams(location.search);
+  const el = document.getElementById('game');
+  const w = (el && el.clientWidth) || window.innerWidth, h = (el && el.clientHeight) || window.innerHeight;
+  const long = Math.max(w, h), short = Math.max(1, Math.min(w, h));
+  const touch = q.has('touch') || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const asp = Math.min(2.4, Math.max(16 / 9, long / short));
+  const gw = Math.round(720 * asp / 2) * 2, gh = 720;
+  const css = Math.min(long / gw, short / gh); // CSS px per game px once in landscape
+  let u = touch ? Math.min(1.6, Math.max(1, 0.72 / css)) : 1;
+  if (q.has('ui')) u = parseFloat(q.get('ui')) || u;
+  return { gw, gh, u, touch, small: touch && short < 600 };
+})();
+const GW = VIEW.gw, GH = VIEW.gh;
+const U = VIEW.u, UW = Math.round(GW / U), UH = Math.round(GH / U); // UI layer: zoomed so text stays legible on phones
 const S = 4;            // city map scale (1024 map px -> 4096 world px)
 const IS = 1.25;        // interior image scale
 const CELL = 8;         // city grid cell in map px (128x128 grid)
