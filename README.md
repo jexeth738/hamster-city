@@ -44,7 +44,22 @@ If the API can't be reached, the HUD says `OFFLINE · SIMULATED` and the game ru
 | Interiors | Walk into houses and shops and steal from them while the owners are around |
 | Shop | Speed, bigger sack, dash, armor and five hamster skins |
 | Help | Grandpa Nibbles walks you through a tutorial, and pressing H opens his guide |
-| Saves | Progress is stored in your browser's local storage |
+| Leaderboard | Online top 20 for golden seeds, missions and longest wanted escape |
+| Saves | Stored in local storage and synced to the cloud; the newer save wins on load |
+
+## Leaderboard
+
+On first launch the game asks for a thief name (3-16 letters, numbers or `_`). Each browser signs in anonymously to [Supabase](https://supabase.com), so there is no account or password.
+
+| Board | Ranked by |
+|---|---|
+| Golden Seeds | Golden block-seeds collected |
+| Missions | Story missions completed (of 13) |
+| Longest Escape | Longest wanted chase that ended with the heat lost, not with getting squashed |
+
+Press L (or TOP on mobile) for the top 20 and your own rank. The save syncs at save points and every 30 seconds. If Supabase can't be reached, the game keeps running on the local save and catches up later.
+
+The schema is in [`supabase/migrations`](supabase/migrations). Row Level Security lets anyone read names and scores, but only the owner can write their row or read their save. Scores have range checks and a server-side cap on how fast they can grow. The client only ships the publishable key.
 
 ## Controls
 
@@ -55,6 +70,7 @@ If the API can't be reached, the HUD says `OFFLINE · SIMULATED` and the game ru
 | Dash (once bought), drift while driving | Shift / Space | B |
 | Big map | M | Tap the minimap (tap again to close) |
 | Help | H | ? |
+| Leaderboard | L | TOP |
 | Pause | P / Esc | II |
 | Skip tutorial | T | Tap the tutorial box |
 
@@ -62,7 +78,7 @@ Landscape works best on phones. In portrait the game shows a rotate prompt, or y
 
 ## Run locally
 
-It's a static site with no build step. Phaser is vendored in `lib/`.
+It's a static site with no build step. Phaser and supabase-js are vendored in `lib/`.
 
 ```sh
 git clone https://github.com/jexeth738/hamster-city.git
