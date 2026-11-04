@@ -98,3 +98,5 @@ Built by 0xyas & Jex. Fonts: Press Start 2P and VT323 (SIL OFL).
 ## License
 
 [MIT](LICENSE)
+
+squeekchain-project: f2a29d3e-8c90-4b00-8c40-019a7dfeb4a8
