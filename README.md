@@ -53,7 +53,7 @@ If the API can't be reached, the HUD says `OFFLINE · SIMULATED` and the game ru
 | Move | WASD / arrow keys | Left joystick |
 | Interact, ride, steal, talk | E / Enter | A |
 | Dash (once bought), drift while driving | Shift / Space | B |
-| Big map | M | Map button |
+| Big map | M | Tap the minimap (tap again to close) |
 | Help | H | ? |
 | Pause | P / Esc | II |
 | Skip tutorial | T | Tap the tutorial box |
