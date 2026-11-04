@@ -57,7 +57,8 @@ const Cloud = {
   scores() { const s = G.save; return { seeds: Math.min(1e6, s.golden | 0), missions: Math.min(13, s.missions | 0), best_wanted_secs: Math.min(7200, s.bestWanted | 0) }; },
   // push the save + scores; update first, insert if this browser has no row yet
   async sync(force) {
-    if (!this.sb || !this.uid || !this.name() || this.busy) return false;
+    if (!this.sb || !this.uid || !this.name()) return false;
+    if (this.busy) { this.again = true; return false; }
     const body = JSON.stringify(G.save); if (!force && body === this.sentBody) return true;
     this.busy = true;
     try {
@@ -68,7 +69,7 @@ const Cloud = {
       if (r.error) throw r.error;
       this.me = Object.assign(this.me || {}, row, r.data[0]); this.sentBody = body; this.lastSync = Date.now(); this.state = 'online';
       return true;
-    } catch (e) { if (!(e && e.code)) this.state = 'offline'; this.err = e; return false; } finally { this.busy = false; }
+    } catch (e) { if (!(e && e.code)) this.state = 'offline'; this.err = e; return false; } finally { this.busy = false; if (this.again) { this.again = false; setTimeout(() => this.sync(), 0); } }
   },
   // first launch: pick a name (and optional wallet), sign in anonymously, create the row
   async register(name, wallet) {

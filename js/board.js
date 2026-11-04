@@ -64,7 +64,7 @@ const Board = {
     this.tab = i; const el = this.el; if (!el) return; const b = BOARDS[i];
     el.querySelectorAll('.tabs button').forEach((t, j) => t.classList.toggle('on', j === i));
     const list = el.querySelector('#olList'), me = el.querySelector('#olMe');
-    if (!quiet) { list.innerHTML = '<li class="msg">Loading...</li>'; }
+    if (!quiet) { list.innerHTML = '<li class="msg">Loading...</li>'; me.textContent = ''; }
     const token = this.req = {};
     try {
       const r = await Cloud.board(b.id); if (this.req !== token || !this.el) return;
