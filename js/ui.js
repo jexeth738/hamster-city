@@ -1,7 +1,7 @@
 // ===== HUD / menus / dialogs / touch controls =====
 const P2 = '"Press Start 2P"', VT = 'VT323';
 // share link follows wherever the game is hosted (GitHub Pages now, custom domain later)
-const GAME_URL = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? location.origin + location.pathname.replace(/index\.html$/, '') : 'https://salsabila2507.github.io/hamster-city/';
+const GAME_URL = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? location.origin + location.pathname.replace(/index\.html$/, '') : 'https://squeekcity.space/';
 function shareX() {
   const txt = `I'm pulling hamster heists in SQUEEK CITY - a retro GTA-style game powered LIVE by @squeekchain's real hamster Squeektoshi (block #${Live.height || '?'}). ${G.save.missions}/${MISSIONS.length} missions, ${G.save.total} seeds stolen. Can you beat me?`;
   window.open('https://x.com/intent/post?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
