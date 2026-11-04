@@ -14,7 +14,7 @@ class BootScene extends Phaser.Scene {
     for (let i = 0; i < 6; i++) this.load.image('car' + i, `${A}car${i}.png`);
     this.load.text('road', A + 'road.txt');
   }
-  create() { G.load(); Sound.on = G.save.sound !== false; Live.start(); this.scene.start('Title'); }
+  create() { G.load(); Cloud.init(); Sound.on = G.save.sound !== false; Live.start(); this.scene.start('Title'); }
 }
 class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -47,13 +47,16 @@ class TitleScene extends Phaser.Scene {
     this.drawMenu();
     this.add.text(W / 2, H - 6, VIEW.touch ? 'Left thumb: joystick  ·  A = interact  ·  B = dash  ·  II = pause  ·  ? = help' : 'WASD/Arrows move · E interact · Shift dash · H help · P pause · touch controls on mobile', { fontFamily: VT, fontSize: sm ? '18px' : '20px', color: '#cfd8ee', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1);
     if (VIEW.touch && this.sys.game.device.fullscreen.available) this.add.text(W - 14, 14, '[ ] FULLSCREEN', { fontFamily: P2, fontSize: '11px', color: '#9ff0ff', backgroundColor: '#0a0f22cc', padding: { x: 10, y: 10 } }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerup', () => toggleFull(this));
-    this.input.keyboard.on('keydown', e => { Sound.resume(); Sound.play('title'); if (this.helpBox) return; const k = e.key.toLowerCase(); if (k === 'arrowup' || k === 'w') { this.sel = (this.sel + this.items.length - 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'arrowdown' || k === 's') { this.sel = (this.sel + 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'enter' || k === 'e' || k === ' ') this.pick(); if (k === 'h') this.help(); });
+    this.input.keyboard.on('keydown', e => { Sound.resume(); Sound.play('title'); if (this.helpBox) return; const k = e.key.toLowerCase(); if (k === 'arrowup' || k === 'w') { this.sel = (this.sel + this.items.length - 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'arrowdown' || k === 's') { this.sel = (this.sel + 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'enter' || k === 'e' || k === ' ') this.pick(); if (k === 'h') this.help(); if (k === 'l') this.board(); });
     this.input.on('pointerdown', () => { Sound.resume(); Sound.play('title'); });
     Sound.play('title');
     this.runner = this.add.image(-80, sm ? H * 0.42 : 410, 'ham_classic_run').setScale(0.5);
     this.time.addEvent({ delay: 140, loop: true, callback: () => { const r = this.runner.texture.key === 'ham_classic_run'; this.runner.setTexture(r ? 'ham_classic_side' : 'ham_classic_run').setFlipX(r); } });
     this.tweens.add({ targets: this.runner, x: W + 80, duration: 6000, repeat: -1, delay: 500 });
+    this.add.text(14, 14, VIEW.touch ? 'TOP 20' : '[L] LEADERBOARD', { fontFamily: P2, fontSize: '11px', color: '#ffd166', backgroundColor: '#0a0f22cc', padding: { x: 10, y: 10 } }).setInteractive({ useHandCursor: true }).on('pointerup', () => this.board());
     this.liveEv = () => this.updChip(); BUS.on('live', this.liveEv); this.events.on('shutdown', () => BUS.off('live', this.liveEv));
+    this.cloudEv = () => { if (!Board.isOpen()) this.scene.restart(); }; BUS.on('cloudLoaded', this.cloudEv); this.events.on('shutdown', () => { BUS.off('cloudLoaded', this.cloudEv); Board.close(true); });
+    if (!TitleScene.asked) { TitleScene.asked = true; Cloud.auth.then(() => this.time.delayedCall(400, () => { if (this.sys.isActive() && Cloud.needsName() && !Board.isOpen()) Board.promptName(); })); }
     this.updChip(); this.time.addEvent({ delay: 1000, loop: true, callback: () => this.updChip() });
   }
   updChip() {
@@ -62,6 +65,7 @@ class TitleScene extends Phaser.Scene {
   }
   drawMenu() { this.rows.forEach((r, i) => { const it = this.items[i]; r.t.setText((i === this.sel ? '> ' : '') + (typeof it.label === 'function' ? it.label() : it.label)).setColor(i === this.sel ? '#ffd166' : '#ffffff'); r.bg.setStrokeStyle(2, i === this.sel ? 0xffd166 : 0x6ad7ff, i === this.sel ? 1 : 0.5); }); }
   pick() { Sound.resume(); Sound.sfx('select'); this.items[this.sel].fn(); }
+  board() { if (this.helpBox || Board.isOpen()) return; Sound.resume(); Sound.sfx('select'); Board.open(); }
   help() { if (this.helpBox) return; this.helpBox = showHelp(this, () => { this.helpBox = null; }); }
   go() {
     Sound.resume(); G.hp = 100; G.stars = 0; MissionSys.a = null; G.frozen = false;

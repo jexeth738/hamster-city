@@ -78,6 +78,8 @@ class UIScene extends Phaser.Scene {
     if (this.touch && this.sys.game.device.fullscreen.available) {
       this.fsBtn = this.add.text(146, 134, '[ ]', { fontFamily: P2, fontSize: '16px', color: '#9ff0ff', backgroundColor: '#0a0f22cc', padding: { x: 10, y: 10 } }).setInteractive({ useHandCursor: true }).on('pointerup', () => toggleFull(this));
     }
+    this.topBtn = this.add.text(this.touch ? (this.fsBtn ? 222 : 146) : 232, this.touch ? 134 : 140, this.touch ? 'TOP' : 'L: top 20', { fontFamily: P2, fontSize: this.touch ? '16px' : '9px', color: '#ffd166', backgroundColor: '#0a0f22cc', padding: { x: 10, y: this.touch ? 10 : 8 } }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openBoard());
+    this.events.on('shutdown', () => Board.close(true));
     this.buildHelper();
     this.menu = null; this.dlg = null; this.lastStatus = Live.status; this.lastZoom = false;
     this.refreshLive();
@@ -143,6 +145,7 @@ class UIScene extends Phaser.Scene {
     if (k === 'escape' && this.dlg) this.advanceDialog(true); else if (k === 'escape' || k === 'p') this.togglePause();
     if (k === 'm') this.toggleBigMap();
     if (k === 'h') this.openHelp();
+    if (k === 'l') this.openBoard();
     if (k === 't') Helper.skip();
   }
   // ---------- per-frame ----------
@@ -248,6 +251,11 @@ class UIScene extends Phaser.Scene {
     Sound.sfx('blip'); if (this.hbTimer) this.hbTimer.remove();
     if (!h.tutorial) this.hbTimer = this.time.delayedCall(h.dur || 6000, () => this.tweens.add({ targets: this.hb, alpha: 0, duration: 400 }));
   }
+  openBoard() {
+    if (this.dlg || this.helpOpen || Board.isOpen()) return; if (this.menu) this.closeMenu(true);
+    const wk = this.worldKey(); if (this.scene.isActive(wk)) this.scene.pause(wk); G.frozen = true; Controls.tx = Controls.ty = 0; Sound.sfx('select');
+    Board.open(() => { G.frozen = false; Controls.action = false; const k = this.worldKey(); if (this.scene.isPaused(k) && !this.menu && !this.dlg) this.scene.resume(k); });
+  }
   openHelp() {
     if (this.dlg || this.helpOpen) return; if (this.menu) this.closeMenu(true);
     const wk = this.worldKey(); if (this.scene.isActive(wk)) this.scene.pause(wk); G.frozen = true;
@@ -350,6 +358,7 @@ class UIScene extends Phaser.Scene {
     const items = [
       { label: 'RESUME', sub: 'Back to the streets', fn: () => this.closeMenu() },
       { label: 'MISSIONS', sub: `${G.save.missions}/${MISSIONS.length} story missions done`, fn: () => this.missionList() },
+      { label: 'LEADERBOARD', sub: Cloud.name() ? `Top 20 thieves · you are ${Cloud.name()}` : 'Top 20 thieves · set a name to join', fn: () => this.openBoard() },
       { label: "GRANDPA'S GUIDE (HELP)", sub: 'Controls, wanted level, vehicles, Squeekchain live', fn: () => { this.closeMenu(true); this.openHelp(); } },
       { label: `HINTS: ${G.save.hintsOff ? 'OFF' : 'ON'}`, sub: 'Grandpa Nibbles pops up with tips', fn: () => { G.save.hintsOff = !G.save.hintsOff; G.persist(); this.closeMenu(true); this.togglePause(); } },
       { label: 'REPLAY TUTORIAL', sub: Helper.active() ? 'Tutorial in progress (T to skip)' : 'Learn the basics again with Grandpa Nibbles', fn: () => { G.save.tut = 0; G.save.hints = {}; G.save.hintsOff = false; G.persist(); this.closeMenu(); if (G.area === 'city') Helper.begin(); } },

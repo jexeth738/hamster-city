@@ -372,7 +372,7 @@ class CityScene extends WorldScene {
   }
   respawn(fromInterior) {
     const lost = Math.floor(G.save.seeds * 0.2); G.save.seeds -= lost; G.save.stats.busted++; G.persist(); BUS.emit('seeds', -lost, 0);
-    G.hp = 100; G.setStars(0); G.cool = 0; BUS.emit('hp');
+    G.hp = 100; G.wantedT = 0; G.setStars(0); G.cool = 0; BUS.emit('hp');
     if (MissionSys.a) MissionSys.fail('You got squashed');
     if (this.vehicle) this.exitVehicle(true);
     for (const e of this.enemies.slice()) if (!e.ambient) this.removeEnemy(e, false);

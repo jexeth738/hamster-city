@@ -255,11 +255,12 @@ class WorldScene extends Phaser.Scene {
   // ---------- star decay ----------
   updateWanted(dt, anySees) {
     if (G.stars <= 0) { G.cool = 0; return; }
+    G.wantedT = (G.wantedT || 0) + dt;
     if (anySees) { G.cool = 0; G.evading = false; return; }
     G.evading = true; const need = 3 + G.stars * 1.6;
     G.cool = (G.cool || 0) + dt * (this.P.hidden && !this.vehicle ? 2.6 : 1);
     G.coolPct = G.cool / need;
-    if (G.cool >= need) { G.cool = 0; G.setStars(G.stars - 1); Sound.sfx('lose'); if (G.stars === 0) BUS.emit('banner', { text: 'HEAT LOST!', sub: 'You slipped away', color: '#7dff9a' }); }
+    if (G.cool >= need) { G.cool = 0; G.setStars(G.stars - 1); Sound.sfx('lose'); if (G.stars === 0) { const e = G.escaped(); BUS.emit('banner', { text: 'HEAT LOST!', sub: `Escaped after ${fmtSecs(e.t)}` + (e.rec ? ' · NEW BEST!' : ''), color: '#7dff9a' }); } }
   }
   // ---------- night lighting ----------
   renderDark(dt, lights) {

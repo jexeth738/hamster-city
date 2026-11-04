@@ -6,8 +6,12 @@ const DEFAULT_SAVE = () => ({ seeds: 25, total: 0, missions: 0, up: { speed: 0, 
 const G = {
   save: DEFAULT_SAVE(), hp: 100, stars: 0, area: 'city', mission: null, frozen: false, inVehicle: null,
   hasSave() { try { return !!localStorage.getItem(SAVE_KEY); } catch (e) { return false; } },
-  load() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) this.save = Object.assign(DEFAULT_SAVE(), s, { up: Object.assign(DEFAULT_SAVE().up, s.up || {}), stats: Object.assign(DEFAULT_SAVE().stats, s.stats || {}) }); } catch (e) { } },
-  persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } },
+  load() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s) this.use(s); } catch (e) { } },
+  // adopt a save object (local or cloud) without counting it as new progress
+  use(s) { this.save = Object.assign(DEFAULT_SAVE(), s, { up: Object.assign(DEFAULT_SAVE().up, s.up || {}), stats: Object.assign(DEFAULT_SAVE().stats, s.stats || {}) }); this.lastBody = this.body(); },
+  body() { const { at, ...rest } = this.save; return JSON.stringify(rest); },
+  // save.at only moves when something actually changed, so local vs cloud can pick the newer save
+  persist() { const b = this.body(); if (b !== this.lastBody) { this.lastBody = b; this.save.at = Date.now(); BUS.emit('saved'); } try { localStorage.setItem(SAVE_KEY, JSON.stringify(this.save)); } catch (e) { } },
   reset() { this.save = DEFAULT_SAVE(); this.persist(); },
   cap() { return SACK_CAPS[this.save.up.sack] || 250; },
   addSeeds(n, raw) {
@@ -19,7 +23,9 @@ const G = {
   spend(n) { if (this.save.seeds < n) return false; this.save.seeds -= n; this.persist(); BUS.emit('seeds', -n, 0); return true; },
   speedMul() { return 1 + 0.12 * this.save.up.speed; },
   armorMul() { return 1 - 0.2 * this.save.up.armor; },
-  setStars(n, why) { n = Phaser.Math.Clamp(n, 0, 5); if (n === this.stars) return; const up = n > this.stars; this.stars = n; BUS.emit('stars', n, up, why); if (up) Sound.sfx('star'); },
+  setStars(n, why) { n = Phaser.Math.Clamp(n, 0, 5); if (n === this.stars) return; const up = n > this.stars; if (!this.stars) this.wantedT = 0; this.stars = n; BUS.emit('stars', n, up, why); if (up) Sound.sfx('star'); },
+  // stars cooled all the way down: that's an escape (getting squashed doesn't count)
+  escaped() { const t = Math.round(this.wantedT || 0); this.wantedT = 0; const rec = t > (this.save.bestWanted || 0); if (rec) { this.save.bestWanted = t; this.persist(); } return { t, rec }; },
   crime(n = 1, why) { this.setStars(Math.max(this.stars, Math.min(5, this.stars + n)), why); },
 };
 const Controls = { mx: 0, my: 0, kx: 0, ky: 0, tx: 0, ty: 0, touch: false, action: false, dash: false, brake: false, dashHeld: false,
@@ -88,3 +94,4 @@ const Live = {
   vehMul() { return this.isDay() ? 1.12 * this.rpmBonus() : 1; },
   sight() { return this.isDay() ? 1 : 0.6; },
 };
+function fmtSecs(t) { t = Math.max(0, Math.round(t)); const m = Math.floor(t / 60), s = t % 60; return m ? `${m}m ${String(s).padStart(2, '0')}s` : `${s}s`; }

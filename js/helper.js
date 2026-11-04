@@ -8,6 +8,7 @@ const HELP_PAGES = [
     'DASH ............ Shift / Space  (mobile: B)  - buy it in the $ shop',
     'DRIFT ........... hold Shift / Space while driving',
     'BIG MAP ......... M        HELP ........ H',
+    'LEADERBOARD ..... L  (mobile: TOP button)',
     'PAUSE ........... P / Esc  (mobile: II button)',
     'SKIP TUTORIAL ... T',
   ] },

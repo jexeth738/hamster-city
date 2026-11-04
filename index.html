@@ -32,6 +32,30 @@ body { position: fixed; inset: 0; }
 @keyframes tilt { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
 @media (orientation: portrait) and (pointer: coarse) { body:not(.portrait-ok) #rotate { display: flex; } }
 .pre { position: absolute; left: -999px; font-family: "Press Start 2P"; } .pre2 { position: absolute; left: -999px; font-family: VT323; }
+/* online overlays: name prompt + leaderboard */
+.ol { position: fixed; inset: 0; z-index: 8; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); box-sizing: border-box; touch-action: manipulation; -webkit-user-select: text; user-select: text; }
+.ol-panel { position: relative; box-sizing: border-box; width: min(640px, 100%); max-height: 100%; display: flex; flex-direction: column; background: rgba(10, 15, 34, 0.96); border: 3px solid #6ad7ff; border-radius: 12px; box-shadow: inset 0 0 0 4px rgba(10, 15, 34, 0.96), inset 0 0 0 5px rgba(255, 255, 255, 0.12), 6px 6px 0 #000; padding: 18px 20px 14px; color: #fff; font-family: VT323, monospace; font-size: 22px; }
+.ol.np .ol-panel { border-color: #ffd166; width: min(560px, 100%); overflow-y: auto; }
+.ol h2 { margin: 2px 0 10px; text-align: center; font: 18px/1.4 "Press Start 2P", monospace; color: #ffd166; text-shadow: 3px 3px 0 #3a1d00; }
+.ol .sub { margin: 0 0 12px; text-align: center; color: #9fb6d9; line-height: 1.05; }
+.ol label { display: block; margin: 8px 0; font: 10px/1.6 "Press Start 2P", monospace; color: #9ff0ff; }
+.ol label span { font: 18px VT323, monospace; color: #8090b0; }
+.ol input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 8px 10px; font: 24px VT323, monospace; color: #ffe066; background: #050816; border: 2px solid #6ad7ff; border-radius: 6px; outline: none; }
+.ol input:focus { border-color: #ffd166; }
+.ol .err { min-height: 22px; margin: 4px 0; color: #ff7b7b; text-align: center; } .ol .err.wait { color: #9fb6d9; }
+.ol button { font: 11px/1.2 "Press Start 2P", monospace; color: #fff; background: #0a0f22; border: 2px solid #6ad7ff; border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+.ol button:hover, .ol button.on { border-color: #ffd166; color: #ffd166; } .ol button.main { border-color: #7dff9a; color: #7dff9a; } .ol button:disabled { opacity: 0.5; }
+.ol .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ol .x { position: absolute; top: 6px; right: 6px; color: #ff7b7b; border-color: transparent; background: none; font-size: 15px; padding: 6px 8px; }
+.ol .tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; } .ol .tabs button { flex: 1; padding: 9px 4px; font-size: 9px; }
+.ol .list { list-style: none; margin: 0; padding: 0 4px 0 0; overflow-y: auto; flex: 1 1 auto; min-height: 60px; }
+.ol .list li { display: flex; gap: 10px; align-items: baseline; padding: 2px 6px; border-bottom: 1px solid rgba(106, 215, 255, 0.12); }
+.ol .list li b { width: 2.2em; text-align: right; color: #9fb6d9; font-weight: normal; } .ol .list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ol .list li i { font-style: normal; color: #ffe066; }
+.ol .list li:nth-child(1) b { color: #ffd166; } .ol .list li:nth-child(2) b { color: #d8e2f0; } .ol .list li:nth-child(3) b { color: #e0a26a; }
+.ol .list li.me { background: rgba(255, 209, 102, 0.14); color: #ffd166; }
+.ol .list li.msg { display: block; text-align: center; color: #9fb6d9; padding: 18px 6px; border: 0; }
+.ol .foot { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 2px solid rgba(106, 215, 255, 0.3); color: #7dff9a; } .ol .foot button { font-size: 9px; padding: 8px 10px; white-space: nowrap; }
+@media (max-height: 460px) { .ol-panel { padding: 10px 14px 8px; font-size: 19px; } .ol h2 { font-size: 13px; margin-bottom: 6px; } .ol .sub { margin-bottom: 4px; } .ol label { margin: 4px 0; } .ol input { padding: 4px 8px; font-size: 21px; } .ol .list li { padding: 0 6px; } }
 </style>
 </head>
 <body>
@@ -45,9 +69,12 @@ body { position: fixed; inset: 0; }
 </div>
 <span class="pre">.</span><span class="pre2">.</span>
 <script src="lib/phaser.min.js"></script>
+<script src="lib/supabase-js-2.118.0.min.js"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/state.js"></script>
+<script src="js/cloud.js"></script>
+<script src="js/board.js"></script>
 <script src="js/mission.js"></script>
 <script src="js/helper.js"></script>
 <script src="js/world.js"></script>
