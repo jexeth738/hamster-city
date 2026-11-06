@@ -16,6 +16,8 @@ function panel(scene, x, y, w, h, a = 0.78, stroke = 0x6ad7ff) {
   g.lineStyle(1, 0xffffff, 0.12); g.strokeRoundedRect(x + 4, y + 4, w - 8, h - 8, 9); return g;
 }
 function fitText(t, maxW, minSize) { let fs = parseInt(t.style.fontSize, 10); while (t.width > maxW && fs > (minSize || 8)) { fs--; t.setFontSize(fs); } if (t.width > maxW && t.text.length > 4) { let s = t.text; while (t.width > maxW && s.length > 4) { s = s.slice(0, -2); t.setText(s + '…'); } } return t; }
+// Fit the complete wrapped line before typewriter animation; portrait gets a taller panel.
+function fitParagraph(t, text, maxH) { let fs = 32; t.setFontSize(fs).setText(text); while (t.height > maxH && fs > 18) t.setFontSize(--fs); return t; }
 function touchify(t) { return String(t).replace(/\bpress E\b/g, 'tap A').replace(/\bPress E\b/g, 'Tap A').replace(/\bpress E\/A\b/gi, 'tap A').replace(/\b[Pp]ress H\b/g, 'tap ?').replace(/\bTap H\b/g, 'Tap ?').replace(/\bPress M\b/g, 'Tap the minimap').replace(/\bpress M\b/g, 'tap the minimap').replace(/SHIFT\/SPACE/g, 'B').replace(/\(E \/ A\)/g, '(A)'); }
 function uiCam(scene) { scene.cameras.main.setOrigin(0, 0).setZoom(U); }
 class UIScene extends Phaser.Scene {
@@ -290,7 +292,7 @@ class UIScene extends Phaser.Scene {
     G.frozen = true; Controls.tx = Controls.ty = 0;
     const c = this.add.container(0, 0).setDepth(70);
     const dim = this.add.rectangle(0, 0, UW, UH, 0x000000, 0.35).setOrigin(0);
-    const dh = Math.min(200, Math.round(UH * 0.4)), dy = UH - dh - 14, dx = this.touch ? 24 : 60, ps = dh - 50;
+    const dh = Math.min(VIEW.portrait ? 400 : 200, Math.round(UH * 0.4)), dy = UH - dh - 14, dx = this.touch ? 24 : 60, ps = VIEW.portrait ? 110 : dh - 50;
     const bg = panel(this, dx, dy, UW - dx * 2, dh, 0.92, 0xffd166);
     const por = this.add.image(dx + 20 + ps / 2, dy + dh / 2, 'portrait0').setDisplaySize(ps, ps); this.dlgPS = ps;
     const name = this.add.text(dx + ps + 50, dy + 18, '', { fontFamily: P2, fontSize: '16px', color: '#ffd166' });
@@ -298,7 +300,7 @@ class UIScene extends Phaser.Scene {
     const hint = this.add.text(UW - dx - 20, dy + dh - 16, this.touch ? 'tap >' : 'E / ENTER >', { fontFamily: P2, fontSize: '10px', color: '#9fb6d9' }).setOrigin(1, 1);
     this.tweens.add({ targets: hint, alpha: 0.3, yoyo: true, repeat: -1, duration: 400 });
     c.add([dim, bg, por, name, txt, hint]);
-    this.dlg = { c, lines, i: -1, cb, por, name, txt, typing: null, full: '' };
+    this.dlg = { c, lines, i: -1, cb, por, name, txt, maxTextH: dh - 84, typing: null, full: '' };
     this.advanceDialog();
   }
   advanceDialog(skipAll) {
@@ -314,7 +316,7 @@ class UIScene extends Phaser.Scene {
     }
     let [who, text] = d.lines[d.i]; const P = PORTRAITS[who]; d.por.setTexture(P.key);
     if (who === 'squeak') d.por.setTexture(`ham_${G.save.skin}_front`).setDisplaySize(this.dlgPS * 0.79, this.dlgPS); else d.por.setDisplaySize(this.dlgPS, this.dlgPS);
-    d.name.setText(P.name).setColor(P.color); if (this.touch) text = touchify(text); d.full = text; d.txt.setText(''); let n = 0;
+    d.name.setText(P.name).setColor(P.color); if (this.touch) text = touchify(text); d.full = text; fitParagraph(d.txt, text, d.maxTextH).setText(''); let n = 0;
     Sound.sfx('blip');
     d.typing = this.time.addEvent({ delay: 18, repeat: text.length - 1, callback: () => { n++; d.txt.setText(text.slice(0, n)); if (n % 4 === 0) Sound.sfx('scan'); if (n >= text.length) d.typing = null; } });
   }
