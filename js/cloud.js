@@ -26,30 +26,35 @@ const Cloud = {
   // periodic push; if we never reached the server (offline at launch), try to reconnect instead
   retry() { if (this.uid) return this.sync(); if (this.sb && this.name() && this.state !== 'connecting') return this.connect(false).catch(() => { this.state = 'offline'; }); },
   name() { return (this.me && this.me.name) || this.local.name || null; },
-  needsName() { return !this.name() && !this.local.skipped && this.anonOK === true; },
-  canJoin() { return !!this.uid || this.anonOK !== false; },
+  needsName() { return G.playMode === 'live' && Live.isFresh() && !this.name() && !this.local.skipped && this.anonOK === true; },
+  canJoin() { return G.playMode === 'live' && Live.isFresh() && (!!this.uid || this.anonOK !== false); },
   remember(o) { Object.assign(this.local, o); try { localStorage.setItem(PLAYER_KEY, JSON.stringify(this.local)); } catch (e) { } },
   // network calls never hang the game: everything races an 8s timeout
   timed(p, ms = 8000) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]); },
   async connect(create) {
+    if (G.playMode !== 'live') return;
     if (!this.sb) throw new Error('no client');
     this.state = 'connecting';
     try { await this.link(create); } catch (e) { this.state = 'offline'; throw e; }
   },
   async link(create) {
+    const modeSession = Live.session;
     let { data: { session } } = await this.timed(this.sb.auth.getSession());
+    if (G.playMode !== 'live' || modeSession !== Live.session) return;
     if (!session) {
       if (!create) { this.state = 'off'; return; }
       const r = await this.timed(this.sb.auth.signInAnonymously()); if (r.error) throw r.error; session = r.data.session;
     }
+    if (G.playMode !== 'live' || modeSession !== Live.session) return;
     this.uid = session.user.id;
     const { data, error } = await this.timed(this.sb.rpc('my_player')); if (error) throw error;
+    if (G.playMode !== 'live' || modeSession !== Live.session) return;
     const row = data && data[0];
     if (row) {
       this.me = row; this.remember({ name: row.name, skipped: false });
       // newer of local vs cloud wins; only swap saves before a run starts
       const cs = row.save, ls = G.save;
-      if (cs && (cs.at || 0) > (ls.at || 0) && !(window.__game && __game.scene.isActive('City'))) { G.use(cs); G.persist(); BUS.emit('cloudLoaded'); }
+      if (cs && cs.rulesVersion === 2 && cs.mode === 'live' && (cs.at || 0) > (ls.at || 0) && !(window.__game && __game.scene.isActive('City'))) { G.use(cs); G.persist(); BUS.emit('cloudLoaded'); }
     }
     this.state = 'online';
     if (this.name()) await this.sync(true);
@@ -57,15 +62,17 @@ const Cloud = {
   scores() { const s = G.save; return { seeds: Math.min(1e6, s.golden | 0), missions: Math.min(13, s.missions | 0), best_wanted_secs: Math.min(7200, s.bestWanted | 0) }; },
   // push the save + scores; update first, insert if this browser has no row yet
   async sync(force) {
+    if (G.playMode !== 'live' || G.save.mode !== 'live' || G.save.rulesVersion !== 2 || !Live.isFresh()) return false;
     if (!this.sb || !this.uid || !this.name()) return false;
     if (this.busy) { this.again = true; return false; }
-    const body = JSON.stringify(G.save); if (!force && body === this.sentBody) return true;
+    const modeSession = Live.session; const snapshot = JSON.parse(JSON.stringify(G.save));
+    const body = JSON.stringify(snapshot); if (!force && body === this.sentBody) return true;
     this.busy = true;
     try {
-      const row = Object.assign({ name: this.name(), save: G.save }, this.scores());
+      const row = Object.assign({ name: this.name(), save: snapshot }, this.scores());
       if (this.local.wallet !== undefined) row.wallet = this.local.wallet || null;
       let r = await this.timed(this.sb.from('players').update(row).eq('id', this.uid).select('seeds,missions,best_wanted_secs'));
-      if (!r.error && (!r.data || !r.data.length)) r = await this.timed(this.sb.from('players').insert(row).select('seeds,missions,best_wanted_secs'));
+      if (!r.error && (!r.data || !r.data.length) && G.playMode === 'live' && modeSession === Live.session && Live.isFresh()) r = await this.timed(this.sb.from('players').insert(row).select('seeds,missions,best_wanted_secs'));
       if (r.error) throw r.error;
       this.me = Object.assign(this.me || {}, row, r.data[0]); this.sentBody = body; this.lastSync = Date.now(); this.state = 'online';
       return true;
@@ -73,12 +80,14 @@ const Cloud = {
   },
   // first launch: pick a name (and optional wallet), sign in anonymously, create the row
   async register(name, wallet) {
+    if (!this.canJoin()) return 'LIVE signal required. PRACTICE never writes online scores.';
     if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) return 'Use 3-16 letters, numbers or _';
     if (wallet && !/^[A-Za-z0-9_.:-]{1,64}$/.test(wallet)) return 'Wallet looks wrong (letters, numbers, . _ : - only)';
     const prev = { name: this.local.name, wallet: this.local.wallet, me: this.me };
     try {
       if (!this.uid) await this.connect(true);
       for (let i = 0; this.busy && i < 40; i++) await new Promise(r => setTimeout(r, 200));
+      if (!this.canJoin()) throw new Error('LIVE signal required');
       this.remember({ name, wallet: wallet || '', skipped: false }); if (this.me) this.me.name = name;
       if (await this.sync(true)) return null;
       throw this.err || new Error('sync');

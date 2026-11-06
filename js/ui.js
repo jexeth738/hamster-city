@@ -3,7 +3,7 @@ const P2 = '"Press Start 2P"', VT = 'VT323';
 // share link follows wherever the game is hosted (GitHub Pages now, custom domain later)
 const GAME_URL = /^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname) ? location.origin + location.pathname.replace(/index\.html$/, '') : 'https://squeekcity.space/';
 function shareX() {
-  const txt = `I'm pulling hamster heists in SQUEEK CITY - a retro GTA-style game powered LIVE by @squeekchain's real hamster Squeektoshi (block #${Live.height || '?'}). ${G.save.missions}/${MISSIONS.length} missions, ${G.save.total} seeds stolen. Can you beat me?`;
+  const txt = `I'm pulling hamster heists in SQUEEK CITY - a wheel-controlled heist game in ${G.playMode === 'practice' ? 'SIMULATED PRACTICE' : 'LIVE mode'}, powered by @squeekchain's real hamster Squeektoshi (block #${Live.height || '?'}). ${G.save.missions}/${MISSIONS.length} missions, ${G.save.total} seeds stolen. Can you beat me?`;
   window.open('https://x.com/intent/post?text=' + encodeURIComponent(txt) + '&url=' + encodeURIComponent(GAME_URL), '_blank', 'noopener');
 }
 function toggleFull(scene) {
@@ -14,11 +14,6 @@ function toggleFull(scene) {
 function panel(scene, x, y, w, h, a = 0.78, stroke = 0x6ad7ff) {
   const g = scene.add.graphics(); g.fillStyle(0x0a0f22, a); g.fillRoundedRect(x, y, w, h, 12); g.lineStyle(3, stroke, 0.9); g.strokeRoundedRect(x, y, w, h, 12);
   g.lineStyle(1, 0xffffff, 0.12); g.strokeRoundedRect(x + 4, y + 4, w - 8, h - 8, 9); return g;
-}
-function toggleFull(scene) {
-  const sc = scene.scale; if (sc.isFullscreen) { sc.stopFullscreen(); return; }
-  try { sc.startFullscreen({ navigationUI: 'hide' }); } catch (e) { }
-  setTimeout(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }, 300);
 }
 function fitText(t, maxW, minSize) { let fs = parseInt(t.style.fontSize, 10); while (t.width > maxW && fs > (minSize || 8)) { fs--; t.setFontSize(fs); } if (t.width > maxW && t.text.length > 4) { let s = t.text; while (t.width > maxW && s.length > 4) { s = s.slice(0, -2); t.setText(s + '…'); } } return t; }
 function touchify(t) { return String(t).replace(/\bpress E\b/g, 'tap A').replace(/\bPress E\b/g, 'Tap A').replace(/\bpress E\/A\b/gi, 'tap A').replace(/\b[Pp]ress H\b/g, 'tap ?').replace(/\bTap H\b/g, 'Tap ?').replace(/\bPress M\b/g, 'Tap the minimap').replace(/\bpress M\b/g, 'tap the minimap').replace(/SHIFT\/SPACE/g, 'B').replace(/\(E \/ A\)/g, '(A)'); }
@@ -42,18 +37,18 @@ class UIScene extends Phaser.Scene {
     this.evadeBar = this.add.rectangle(48, 120, 0, 4, 0x7dff9a).setOrigin(0, 0.5);
     this.hiddenTxt = this.add.text(250, 96, 'HIDDEN', { fontFamily: P2, fontSize: '10px', color: '#06300f', backgroundColor: '#7dff9a', padding: { x: 6, y: 4 } }).setVisible(false);
     // ---- objective ----
-    this.objBg = this.add.graphics(); this.objCX = Math.round((330 + UW - 354) / 2); this.objW = Math.min(580, UW - 704); this.objTitle = this.add.text(this.objCX, 20, '', { fontFamily: P2, fontSize: '11px', color: '#ffd166' }).setOrigin(0.5, 0);
+    this.objBg = this.add.graphics(); this.objCX = UW < 1050 ? (UW - 220) / 2 : Math.round((330 + UW - 354) / 2); this.objW = UW < 1050 ? UW - 240 : Math.min(580, UW - 704); this.objTitle = this.add.text(this.objCX, 20, '', { fontFamily: P2, fontSize: '11px', color: '#ffd166' }).setOrigin(0.5, 0);
     this.objTxt = this.add.text(this.objCX, 40, '', { fontFamily: VT, fontSize: this.objW < 500 ? '23px' : '26px', color: '#ffffff', stroke: '#000', strokeThickness: 3, align: 'center', wordWrap: { width: this.objW - 40 } }).setOrigin(0.5, 0);
     this.timerTxt = this.add.text(this.objCX, 76, '', { fontFamily: P2, fontSize: '16px', color: '#ff8a8a', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
     // ---- live panel ----
     this.buildLive();
     // ---- minimap ----
-    this.mmS = this.touch && UH < 640 ? (UH < 520 ? 124 : 140) : 200; this.mmX = UW - 14 - this.mmS; this.mmY = 176;
+    this.mmS = VIEW.portrait ? 124 : this.touch && UH < 640 ? (UH < 520 ? 124 : 140) : 200; this.mmX = UW - 14 - this.mmS; this.mmY = VIEW.portrait ? 260 : 212;
     panel(this, this.mmX - 6, this.mmY - 6, this.mmS + 12, this.mmS + 12, 0.85);
     this.mmImg = this.add.image(this.mmX, this.mmY, 'city').setOrigin(0).setDisplaySize(this.mmS, this.mmS).setInteractive({ useHandCursor: true }).on('pointerdown', () => { if (!this.menu && !this.dlg && !this.helpOpen) this.toggleBigMap(); });
     this.mmG = this.add.graphics(); this.mmLabel = this.add.text(this.mmX + this.mmS / 2, this.mmY + this.mmS + 10, 'SQUEEK CITY', { fontFamily: P2, fontSize: '9px', color: '#9ff0ff' }).setOrigin(0.5, 0).setVisible(!(this.touch && UH < 520));
     // ---- prompt / banner / bigtext ----
-    this.promptBg = this.add.graphics(); this.promptTxt = this.add.text(UW / 2, UH - 72, '', { fontFamily: P2, fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+    this.promptBg = this.add.graphics(); this.promptTxt = this.add.text(UW / 2, UH - 72, '', { fontFamily: P2, fontSize: UW < 1050 ? '12px' : '14px', color: '#ffffff', align: 'center', wordWrap: { width: UW - 260 } }).setOrigin(0.5);
     this.bannerC = this.add.container(UW / 2, 150).setAlpha(0).setDepth(65);
     this.bannerBg = this.add.graphics(); this.bannerT = this.add.text(0, -12, '', { fontFamily: P2, fontSize: '22px', color: '#ffd166', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
     this.bannerS = this.add.text(0, 20, '', { fontFamily: VT, fontSize: '24px', color: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
@@ -87,7 +82,7 @@ class UIScene extends Phaser.Scene {
   worldKey() { return this.scene.isActive('Interior') || this.scene.isPaused('Interior') ? 'Interior' : 'City'; }
   // ---------- live panel ----------
   buildLive() {
-    const w = 340, h = 150, x = UW - 14 - w, y = 12; this.liveX = x; this.liveY = y; this.liveW = w;
+    const w = 340, h = 188, x = UW - 14 - w, y = 12; this.liveX = x; this.liveY = y; this.liveW = w;
     this.liveBg = panel(this, x, y, w, h, 0.85);
     this.liveDot = this.add.circle(x + 20, y + 20, 7, 0xff3b3b);
     this.liveTitle = this.add.text(x + 34, y + 13, 'LIVE · SQUEEKCHAIN', { fontFamily: P2, fontSize: '11px', color: '#ffffff' });
@@ -99,20 +94,22 @@ class UIScene extends Phaser.Scene {
     this.liveProg = this.add.rectangle(x + 14, y + 114, 0, 10, 0x6ad7ff).setOrigin(0, 0.5);
     this.liveProgTxt = this.add.text(x + w - 14, y + 90, '', { fontFamily: VT, fontSize: '18px', color: '#9fb6d9' }).setOrigin(1, 0);
     this.liveMode = this.add.text(x + 14, y + 124, '', { fontFamily: VT, fontSize: '19px', color: '#ffffff' });
+    this.liveEvent = this.add.text(x + 14, y + 148, '', { fontFamily: VT, fontSize: '20px', color: '#ffd166', wordWrap: { width: w - 28 } });
     this.miniHam = this.add.image(x + 40, y + 62, 'ham_classic_run').setScale(0.2);
   }
   refreshLive() {
     if (!this.liveStatus) return; const L = Live;
-    const live = L.mode === 'live'; const conn = L.mode === 'connecting';
-    this.liveTitle.setText(live ? 'LIVE from SQUEEKCHAIN' : conn ? 'CONNECTING...' : 'OFFLINE · SIMULATED').setColor(live ? '#ffffff' : '#ffb35c');
-    this.liveDot.setFillStyle(live ? 0xff3b3b : 0xffb35c);
-    this.liveStatus.setText(L.isDay() ? 'SQUEEKTOSHI: RUNNING' : 'SQUEEKTOSHI: ASLEEP').setColor(L.isDay() ? '#7dff9a' : '#b9a3ff');
-    this.liveRpm.setText(`${L.rpm.toFixed(1)} RPM · ${(L.speed / 10).toFixed(1)} cm/s` + (live && L.fresh !== 'online' ? ` · ${String(L.fresh).toUpperCase()}` : ''));
-    this.liveBlock.setText(`BLOCK #${(L.height || 0).toLocaleString('en-US')}`);
-    this.liveProgTxt.setText(`next block ${Math.floor(L.progress * 100)}%`);
+    const live = L.isFresh(); const practice = G.playMode === 'practice';
+    this.liveTitle.setText(practice ? 'PRACTICE · SIMULATED' : live ? 'LIVE · SQUEEKTOSHI' : 'LIVE · SIGNAL LOST').setColor(live ? '#ffffff' : '#ffb35c');
+    this.liveDot.setFillStyle(live ? 0x7dff9a : 0xffb35c);
+    this.liveStatus.setText(!L.canReward() ? 'STATE UNKNOWN · HOLD' : L.isDay() ? 'SQUEEKTOSHI: RUNNING' : 'SQUEEKTOSHI: ASLEEP').setColor(L.isDay() ? '#7dff9a' : '#b9a3ff');
+    this.liveRpm.setText(`${L.rpm.toFixed(1)} RPM · ${L.canReward() ? (L.speed / 10).toFixed(1) + ' cm/s' : 'last reading'}`);
+    this.liveBlock.setText(`${practice ? 'SIM' : 'PROJECTED'} #${fmtBlock(L.height)}`);
+    this.liveProgTxt.setText(practice ? 'local only' : `settled #${fmtBlock(L.settledHeight)}`);
     this.liveProg.width = (this.liveW - 28) * L.progress;
-    this.liveMode.setText(L.zoomies ? 'ZOOMIES! loot x2 · turbo city' : L.isDay() ? `DAY CITY · loot x${L.mult()} · fast rides` : `NIGHT CITY · stealth · loot x${L.mult()}`).setColor(L.zoomies ? '#ff7bd5' : L.isDay() ? '#ffe9a8' : '#b9a3ff');
-    this.multTxt.setText(`x${L.mult()}`).setColor(L.mult() >= 1 ? '#7dff9a' : '#ff9a9a');
+    this.liveMode.setText(!L.canReward() ? 'PAYOUTS HELD · NO SIMULATION' : L.zoomies ? 'ZOOMIES · x2 loot / x1.35 chase' : L.isDay() ? 'WHEEL OPEN · loot x1 / day patrols' : 'WHEEL CLOSED · loot x0.5 / stealth');
+    this.liveEvent.setText(Heists.label());
+    this.multTxt.setText(L.canReward() ? `x${L.mult()}` : 'HOLD').setColor(L.mult() >= 1 ? '#7dff9a' : '#ff9a9a');
     if (L.zoomies && !this.lastZoom) { this.banner({ text: 'ZOOMIES!!!', sub: `Squeektoshi hit ${L.rpm.toFixed(0)} RPM — DOUBLE LOOT`, color: '#ff7bd5' }); Sound.sfx('zoomies'); }
     this.lastZoom = L.zoomies;
   }
@@ -122,8 +119,8 @@ class UIScene extends Phaser.Scene {
     this.joyBase = this.add.circle(jx, jy, 84, 0xffffff, 0.12).setStrokeStyle(4, 0xffffff, 0.35);
     this.joyKnob = this.add.circle(jx, jy, 38, 0xffffff, 0.35);
     const btn = (x, y, r, label, col, down, up) => { const c = this.add.circle(x, y, r, col, 0.45).setStrokeStyle(4, 0xffffff, 0.6).setInteractive(); const t = this.add.text(x, y, label, { fontFamily: P2, fontSize: r > 45 ? '22px' : '15px', color: '#fff' }).setOrigin(0.5); c.on('pointerdown', () => { c.setAlpha(1.4); down(); }); c.on('pointerup', () => { c.setAlpha(1); up && up(); }); c.on('pointerout', () => { c.setAlpha(1); up && up(); }); return c; };
-    btn(UW - 90, UH - (UH < 520 ? 86 : 100), UH < 520 ? 52 : 56, 'A', 0x2f9e44, () => { Controls.action = true; Sound.resume(); this.menuSelect(); });
-    btn(UW - 205, UH - 52, 40, 'B', 0xc92a2a, () => { Controls.dash = true; Controls.dashHeld = true; }, () => { Controls.dashHeld = false; });
+    btn(UW - 90, UH - (UH < 520 ? 110 : 124), UH < 520 ? 52 : 56, 'A', 0x2f9e44, () => { Controls.action = true; Sound.resume(); this.menuSelect(); });
+    btn(UW - 205, UH - 84, 40, 'B', 0xc92a2a, () => { Controls.dash = true; Controls.dashHeld = true; }, () => { Controls.dashHeld = false; });
     this.joyId = null;
     this.input.on('pointerdown', p => { const x = p.x / U, y = p.y / U; if (x < UW * 0.42 && y > UH * 0.4 && this.joyId === null && !this.menu && !this.helpOpen) { this.joyId = p.id; this.joyBase.setPosition(Math.max(90, x), Math.min(UH - 90, y)); this.joyKnob.setPosition(x, y); } if (this.dlg) this.advanceDialog(); });
     this.input.on('pointermove', p => { if (p.id !== this.joyId) return; const dx = p.x / U - this.joyBase.x, dy = p.y / U - this.joyBase.y; const l = Math.hypot(dx, dy); const m = Math.min(l, 84); const a = Math.atan2(dy, dx); this.joyKnob.setPosition(this.joyBase.x + Math.cos(a) * m, this.joyBase.y + Math.sin(a) * m); const n = l < 12 ? 0 : m / 84; Controls.tx = Math.cos(a) * n; Controls.ty = Math.sin(a) * n; });
@@ -161,6 +158,7 @@ class UIScene extends Phaser.Scene {
     this.evadeBar.width = G.stars > 0 && G.evading ? 180 * Phaser.Math.Clamp(G.coolPct || 0, 0, 1) : 0;
     this.hiddenTxt.setVisible(!!G.hidden);
     // objective
+    if (!this.liveRefreshAt || time >= this.liveRefreshAt) { this.liveRefreshAt = time + 500; this.refreshLive(); }
     const a = MissionSys.a; this.objBg.clear();
     if (a) {
       const st = this.touch ? touchify(MissionSys.text()) : MissionSys.text(); this.objTitle.setText(a.def.title.toUpperCase()); this.objTxt.setText(st);
@@ -168,13 +166,14 @@ class UIScene extends Phaser.Scene {
       this.timerTxt.setY(40 + this.objTxt.height + 4).setText(a.timer !== null ? `${Math.ceil(a.timer)}s` : '').setColor(a.timer !== null && a.timer < 10 && Math.floor(time / 250) % 2 ? '#ffffff' : '#ff8a8a');
     } else {
       this.objTitle.setText(''); this.timerTxt.setText('');
-      const nm = MissionSys.next(); this.objTxt.setText(G.area === 'city' ? (nm ? 'Go to the yellow ! at the park gazebo for the next job' : 'All story missions done! Free roam & side jobs') : '');
+      const nm = MissionSys.next(); this.objTxt.setText(G.area === 'city' ? (nm ? 'W = Wheel Heist. Run the route, escape, then a new wheel block unlocks your pay.' : 'All story missions done! Free roam & side jobs') : '');
       if (this.objTxt.text) { this.objBg.fillStyle(0x0a0f22, 0.55); this.objBg.fillRoundedRect(this.objCX - this.objW / 2, 12, this.objW, 34 + this.objTxt.height - 16, 10); this.objTxt.setY(24); }
     }
     if (a) this.objTxt.setY(40);
+    if (UW < 1050) { this.objTitle.setY(206); this.objTxt.setY(226); this.timerTxt.setY(226 + this.objTxt.height + 4); this.objBg.clear(); }
     // prompt
     this.promptBg.clear(); const pr = this.dlg || this.menu ? null : G.prompt;
-    if (pr) { this.promptTxt.setText(this.touch ? '[A] ' + touchify(pr).replace(/^Tap A \/ A /, 'Tap A ') : '[E] ' + pr); const w = this.promptTxt.width + 40; this.promptBg.fillStyle(0x0a0f22, 0.8); const py = UH - 92; this.promptBg.fillRoundedRect(UW / 2 - w / 2, py, w, 40, 20); this.promptBg.lineStyle(2, 0x7dff9a, 0.9); this.promptBg.strokeRoundedRect(UW / 2 - w / 2, py, w, 40, 20); this.promptTxt.setVisible(true); }
+    if (pr) { this.promptTxt.setText(this.touch ? '[A] ' + touchify(pr).replace(/^Tap A \/ A /, 'Tap A ') : '[E] ' + pr); const w = this.promptTxt.width + 40, h = this.promptTxt.height + 20; this.promptBg.fillStyle(0x0a0f22, 0.8); const py = UH - 72 - h / 2; this.promptBg.fillRoundedRect(UW / 2 - w / 2, py, w, h, 20); this.promptBg.lineStyle(2, 0x7dff9a, 0.9); this.promptBg.strokeRoundedRect(UW / 2 - w / 2, py, w, h, 20); this.promptTxt.setVisible(true); }
     else this.promptTxt.setVisible(false);
     if (pr && pr.startsWith('HACKING')) this.promptTxt.setText(pr);
     // live anim
@@ -234,7 +233,7 @@ class UIScene extends Phaser.Scene {
   }
   // ---------- helper bubble ----------
   buildHelper() {
-    const c = this.add.container(14, 190).setDepth(60).setAlpha(0); this.hb = c;
+    const c = this.add.container(14, VIEW.portrait ? 350 : 190).setDepth(60).setAlpha(0); this.hb = c;
     this.hbBg = this.add.graphics(); this.hbPor = this.add.image(46, 46, 'portrait4').setDisplaySize(76, 76);
     this.hbName = this.add.text(92, 10, 'GRANDPA NIBBLES', { fontFamily: P2, fontSize: '10px', color: '#f0dfb8' });
     this.hbStep = this.add.text(470, 10, '', { fontFamily: P2, fontSize: '9px', color: '#9fb6d9' }).setOrigin(1, 0);
@@ -267,7 +266,7 @@ class UIScene extends Phaser.Scene {
   flashObj() { this.tweens.add({ targets: this.objTxt, scale: 1.15, yoyo: true, duration: 120 }); }
   banner(b) { this.bannerQ.push(b); }
   showBanner(b) {
-    this.bannerBusy = true; this.bannerT.setText(b.text).setColor(b.color || '#ffd166').setFontSize(b.small ? 16 : 22); this.bannerS.setText(b.sub || '');
+    this.bannerBusy = true; this.bannerT.setText(b.text).setColor(b.color || '#ffd166').setFontSize(b.small ? 16 : 22); this.bannerS.setText(b.sub || '').setFontSize(24); fitText(this.bannerT, UW - 80, 14); fitText(this.bannerS, UW - 80, 16);
     const w = Math.max(this.bannerT.width, this.bannerS.width) + 60; this.bannerBg.clear(); this.bannerBg.fillStyle(0x0a0f22, 0.85); this.bannerBg.fillRoundedRect(-w / 2, -36, w, b.sub ? 76 : 50, 12);
     this.bannerBg.lineStyle(3, Phaser.Display.Color.HexStringToColor(b.color || '#ffd166').color, 1); this.bannerBg.strokeRoundedRect(-w / 2, -36, w, b.sub ? 76 : 50, 12);
     this.bannerC.setY(this.touch ? UH - 165 : (MissionSys.a ? 160 : 130)).setScale(0.6).setAlpha(0);
@@ -275,7 +274,7 @@ class UIScene extends Phaser.Scene {
     this.time.delayedCall(b.dur || 2600, () => this.tweens.add({ targets: this.bannerC, alpha: 0, duration: 300, onComplete: () => { this.bannerBusy = false; } }));
   }
   blockBanner(d) {
-    this.banner({ text: `BLOCK #${d.to.toLocaleString('en-US')} MINED!`, sub: `Squeektoshi's real wheel dropped ${Math.min(5, d.count)} GOLDEN SEED${d.count > 1 ? 'S' : ''} in the city`, color: '#ffd84a', dur: 3600 });
+    this.banner({ text: `GOLDEN HEIST #${fmtBlock(d.to)}`, sub: `${d.simulated ? 'SIMULATED' : 'OBSERVED / PROJECTED'} block · steal the gold cache, lose heat, extract at W`, color: '#ffd84a', dur: 3600 });
     const fl = this.add.rectangle(0, 0, UW, UH, 0xffd84a, 0.25).setOrigin(0); this.tweens.add({ targets: fl, alpha: 0, duration: 700, onComplete: () => fl.destroy() });
   }
   bigText(b) {
@@ -358,7 +357,7 @@ class UIScene extends Phaser.Scene {
     const items = [
       { label: 'RESUME', sub: 'Back to the streets', fn: () => this.closeMenu() },
       { label: 'MISSIONS', sub: `${G.save.missions}/${MISSIONS.length} story missions done`, fn: () => this.missionList() },
-      { label: 'LEADERBOARD', sub: Cloud.name() ? `Top 20 thieves · you are ${Cloud.name()}` : 'Top 20 thieves · set a name to join', fn: () => this.openBoard() },
+      { label: G.playMode === 'practice' ? 'LEADERBOARD (READ ONLY)' : 'LEADERBOARD', sub: Cloud.name() ? `Top 20 thieves · you are ${Cloud.name()}` : 'Top 20 thieves · set a name to join', fn: () => this.openBoard() },
       { label: "GRANDPA'S GUIDE (HELP)", sub: 'Controls, wanted level, vehicles, Squeekchain live', fn: () => { this.closeMenu(true); this.openHelp(); } },
       { label: `HINTS: ${G.save.hintsOff ? 'OFF' : 'ON'}`, sub: 'Grandpa Nibbles pops up with tips', fn: () => { G.save.hintsOff = !G.save.hintsOff; G.persist(); this.closeMenu(true); this.togglePause(); } },
       { label: 'REPLAY TUTORIAL', sub: Helper.active() ? 'Tutorial in progress (T to skip)' : 'Learn the basics again with Grandpa Nibbles', fn: () => { G.save.tut = 0; G.save.hints = {}; G.save.hintsOff = false; G.persist(); this.closeMenu(); if (G.area === 'city') Helper.begin(); } },
@@ -366,7 +365,7 @@ class UIScene extends Phaser.Scene {
       { label: 'SHARE ON X', sub: 'Opens a post draft (nothing is posted automatically)', fn: () => shareX() },
       { label: 'QUIT TO TITLE', sub: 'Progress is saved automatically', fn: () => { G.persist(); this.closeMenu(true); this.scene.stop('Interior'); this.scene.stop('City'); Sound.setEngine(0); Sound.setSiren(0); this.scene.start('Title'); } },
     ];
-    this.openMenu('PAUSED', items, { footer: `Seeds stolen all-time: ${G.save.total.toLocaleString('en-US')} · Golden seeds: ${G.save.golden} · Squashed: ${G.save.stats.busted}` });
+    this.openMenu(G.playMode === 'practice' ? 'PRACTICE · LOCAL ONLY' : 'LIVE · PAUSED', items, { footer: `Seeds stolen all-time: ${G.save.total.toLocaleString('en-US')} · Golden seeds: ${G.save.golden} · Squashed: ${G.save.stats.busted}` });
   }
   missionList() {
     const items = MISSIONS.map((m, i) => ({ label: `${i + 1}. ${m.title}`, sub: i < G.save.missions ? 'Completed' : i === G.save.missions ? 'NEXT — go to the hideout (!)' : 'Locked', right: i < G.save.missions ? 'DONE' : `+${m.reward}`, rightColor: i < G.save.missions ? '#7dff9a' : '#ffe066', disabled: i > G.save.missions, fn: () => this.togglePause() }));
@@ -379,9 +378,9 @@ class UIScene extends Phaser.Scene {
       { label: 'E / ENTER / A', sub: 'Interact: enter buildings, ride vehicles, steal, start jobs', fn: () => this.togglePause() },
       { label: 'SHIFT / SPACE / B', sub: 'Dash (buy it at the $ shop) · handbrake drift in cars', fn: () => this.togglePause() },
       { label: 'WANTED STARS', sub: 'Break line of sight & hide in hedges/bushes to cool down', fn: () => this.togglePause() },
-      { label: 'SQUEEKTOSHI RUNNING', sub: 'Day city, faster rides, more patrols, loot x RPM bonus', fn: () => this.togglePause() },
+      { label: 'SQUEEKTOSHI RUNNING', sub: 'Wheel Heist opens. Finish route, escape, wait for a new block.', fn: () => this.togglePause() },
       { label: 'SQUEEKTOSHI SLEEPING', sub: 'Night city, guards see less, loot x0.5', fn: () => this.togglePause() },
-      { label: 'NEW REAL BLOCK', sub: 'Golden seeds spawn in the city · high RPM = ZOOMIES x2', fn: () => this.togglePause() },
+      { label: 'NEW OBSERVED BLOCK', sub: 'One golden cache, 90s. Lose heat, bank at W. 70 RPM = x2 + faster chase.', fn: () => this.togglePause() },
       { label: 'M = MAP · P/ESC = PAUSE', sub: 'Progress saves automatically in this browser', fn: () => this.togglePause() },
     ], { w: 820 });
   }
@@ -401,9 +400,4 @@ class UIScene extends Phaser.Scene {
       { label: 'KEEP PLAYING', sub: 'Free roam, side jobs & golden seeds', fn: () => this.closeMenu() },
     ], { color: 0xffd166 });
   }
-}
-function toggleFull(scene) {
-  const sc = scene.scale; if (sc.isFullscreen) { sc.stopFullscreen(); return; }
-  try { sc.startFullscreen({ navigationUI: 'hide' }); } catch (e) { }
-  setTimeout(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }, 300);
 }

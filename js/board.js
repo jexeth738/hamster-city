@@ -29,7 +29,7 @@ const Board = {
       <label>NAME <input id="olName" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="3-16 letters, numbers, _"></label>
       <label>WALLET <span>(optional, kept private)</span> <input id="olWallet" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="0x... or any address"></label>
       <p class="err" id="olErr"></p>
-      <div class="row"><button class="main" id="olOk">${rename ? 'SAVE' : 'JOIN LEADERBOARD'}</button><button id="olSkip">${rename ? 'CANCEL' : 'PLAY OFFLINE'}</button></div>`, 'np');
+      <div class="row"><button class="main" id="olOk">${rename ? 'SAVE' : 'JOIN LEADERBOARD'}</button><button id="olSkip">${rename ? 'CANCEL' : 'PLAY WITHOUT CLOUD'}</button></div>`, 'np');
     this.onClose = onClose;
     const name = el.querySelector('#olName'), wal = el.querySelector('#olWallet'), err = el.querySelector('#olErr'), ok = el.querySelector('#olOk');
     name.value = Cloud.name() || ''; wal.value = Cloud.local.wallet || '';
@@ -48,7 +48,7 @@ const Board = {
   open(onClose) {
     const el = this.mount(`
       <button class="x" id="olX" aria-label="Close">X</button>
-      <h2>TOP THIEVES</h2>
+      <h2>${G.playMode === 'practice' ? 'LIVE BOARD · READ ONLY' : 'TOP THIEVES'}</h2>
       <div class="tabs">${BOARDS.map((b, i) => `<button data-i="${i}">${b.tab}</button>`).join('')}</div>
       <ol class="list" id="olList"></ol>
       <div class="foot"><span id="olMe"></span><button id="olName2"></button></div>`, 'lb');
@@ -75,7 +75,7 @@ const Board = {
         const rk = document.createElement('b'); rk.textContent = n + 1; const nm = document.createElement('span'); nm.textContent = p.name; const v = document.createElement('i'); v.textContent = b.fmt(p[b.id]);
         li.append(rk, nm, v); list.appendChild(li);
       });
-      me.textContent = !Cloud.name() ? (Cloud.canJoin() ? 'Set a name to join the leaderboard' : 'Joining the leaderboard opens soon') : r.rank ? `YOU: #${r.rank} · ${Cloud.name()} · ${b.fmt(r.mine)}` : `YOU: ${Cloud.name()} · not ranked yet`;
+      me.textContent = G.playMode === 'practice' ? 'PRACTICE is local-only. These are LIVE scores; yours will not be submitted.' : !Cloud.name() ? (Cloud.canJoin() ? 'Set a name to join the leaderboard' : 'Joining the leaderboard opens soon') : r.rank ? `YOU: #${r.rank} · ${Cloud.name()} · ${b.fmt(r.mine)}` : `YOU: ${Cloud.name()} · not ranked yet`;
     } catch (e) {
       if (this.req !== token || !this.el) return;
       list.innerHTML = '<li class="msg">Leaderboard is offline.<br>Your progress is still saved on this device.</li>';

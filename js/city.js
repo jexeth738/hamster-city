@@ -23,7 +23,8 @@ class CityScene extends WorldScene {
     const st = CITY.start; this.createPlayer(this.w(st.x), this.w(st.y));
     // markers
     this.markerG = this.add.graphics().setDepth(4);
-    this.hideoutIcon = this.add.text(this.w(CITY.hideout.x), this.w(CITY.hideout.y) - 70, '!', { fontFamily: '"Press Start 2P"', fontSize: '34px', color: '#ffd166', stroke: '#3a2400', strokeThickness: 8 }).setOrigin(0.5).setDepth(5500);
+    this.hideoutIcon = this.add.text(this.w(CITY.hideout.x), this.w(CITY.hideout.y) - 70, 'W', { fontFamily: '"Press Start 2P"', fontSize: '34px', color: '#ffd166', stroke: '#3a2400', strokeThickness: 8 }).setOrigin(0.5).setDepth(5500);
+    this.storyIcon = this.add.text(this.w(CITY.hideout.x) + 140, this.w(CITY.hideout.y) - 60, 'STORY', { fontFamily: 'VT323', fontSize: '22px', color: '#ffd166', stroke: '#000000', strokeThickness: 4 }).setOrigin(0.5).setDepth(5500);
     this.shopIcon = this.add.text(this.w(CITY.shop.x), this.w(CITY.shop.y) - 64, '$', { fontFamily: '"Press Start 2P"', fontSize: '28px', color: '#7dff9a', stroke: '#06300f', strokeThickness: 8 }).setOrigin(0.5).setDepth(5500);
     this.tweens.add({ targets: [this.hideoutIcon, this.shopIcon], y: '-=12', yoyo: true, repeat: -1, duration: 600, ease: 'Sine.inOut' });
     this.sideIcons = SIDEJOBS.map(j => { const t = this.add.star(this.w(j.x), this.w(j.y) - 60, 5, 9, 20, 0x6ad7ff).setStrokeStyle(4, 0x002033).setDepth(5500); this.tweens.add({ targets: t, y: '-=10', angle: 20, yoyo: true, repeat: -1, duration: 700 }); return t; });
@@ -65,7 +66,7 @@ class CityScene extends WorldScene {
     this.tweens.add({ targets: this.nibbles, scaleY: 0.52, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.inOut' });
     BUS.on('tutSkate', this.tutSkate, this); this.events.on('shutdown', () => BUS.off('tutSkate', this.tutSkate, this));
     this.lastPos = { x: this.P.mover.x, y: this.P.mover.y };
-    if (!G.save.seenHelp) { G.save.seenHelp = true; G.save.tut = 0; G.persist(); this.time.delayedCall(800, () => BUS.emit('dialog', [['nibbles', "Well hello there, young cheeks! Welcome to SQUEEK CITY. I'm Grandpa Nibbles. Back in my day I robbed every seed bin in this town."], ['nibbles', "Now I'm retired, so I help new thieves like you. I'll walk you through the basics. Watch the bubble on the left for my tips!"]], () => Helper.begin())); }
+    if (!G.save.seenHelp) { G.save.seenHelp = true; G.save.tut = 0; G.persist(); this.time.delayedCall(800, () => BUS.emit('dialog', [['nibbles', "Welcome to SQUEEK CITY. Squeektoshi controls the job board: running opens Wheel Heists, sleep closes them, and 70 RPM means double loot AND faster patrols."], ['nibbles', "Start at the W beside you. Steal the relay caches, escape, then wait for the next real wheel block to unlock your pay. Golden block cargo must also be brought home. No wallet needed."]], () => Helper.begin())); }
     else if (Helper.active()) this.time.delayedCall(800, () => Helper.begin());
     else if (!Live.isDay()) this.time.delayedCall(1500, () => Helper.hint('night', 'Squeektoshi is asleep right now, so it is NIGHT in the city. Guards see less, but loot only pays half.'));
   }
@@ -239,7 +240,7 @@ class CityScene extends WorldScene {
       else if (dist < 420 && this.los(v.mover.x, v.mover.y, pp.x, pp.y)) tgt = pp; else tgt = this.roadNext(v.mover.x, v.mover.y) || pp;
       const want = Math.atan2(tgt.y - v.mover.y, tgt.x - v.mover.x); const diff = Math.abs(wrapA(want - v.heading));
       v.heading = Phaser.Math.Angle.RotateTo(v.heading, want, v.def.turn * dt);
-      const maxS = v.def.max * (G.stars >= 5 ? 1.12 : 1) * (Live.isDay() ? 1.05 : 0.9) * (diff > 1.2 ? 0.5 : 1);
+      const maxS = v.def.max * (G.stars >= 5 ? 1.12 : 1) * (Live.isDay() ? 1.05 : 0.9) * Live.chaseMul() * (diff > 1.2 ? 0.5 : 1);
       v.speed += (maxS - v.speed) * Math.min(1, dt * 1.3);
       b.setVelocity(Math.cos(v.heading) * v.speed, Math.sin(v.heading) * v.speed);
       v.hitCd = (v.hitCd || 0) - dt;
@@ -253,9 +254,11 @@ class CityScene extends WorldScene {
   }
   // ---------- wanted spawning ----------
   spawnAmbient() {
-    const want = Live.isDay() ? { cat: 2, vacuum: 3 } : { cat: 1, vacuum: 1 }; const pp = this.playerPos();
+    const want = Live.isDay() ? { cat: Live.zoomies ? 4 : 2, vacuum: 3 } : { cat: 1, vacuum: 1 }; const pp = this.playerPos();
     for (const k of Object.keys(want)) {
-      const have = this.enemies.filter(e => e.ambient && e.kind === k).length;
+      const ambient = this.enemies.filter(e => e.alive && e.ambient && !e.smashTarget && e.kind === k);
+      for (const e of ambient.slice(want[k])) this.removeEnemy(e);
+      const have = Math.min(ambient.length, want[k]);
       for (let i = have; i < want[k]; i++) { const p = this.randomWalkable(pp, 700, 2400); if (p) this.spawnEnemy(k, p.x, p.y, { ambient: true, state: 'wander' }); }
     }
   }
@@ -285,6 +288,7 @@ class CityScene extends WorldScene {
   // ---------- pickups / golden ----------
   spawnSeed() { const pp = this.playerPos(); const p = this.randomWalkable(pp, 500, 99999); if (p) this.addSeed(p.x + Phaser.Math.Between(-10, 10), p.y + Phaser.Math.Between(-10, 10), 'seed', 1); }
   onPickup(p) {
+    if (p.kind === 'gold' && p.cache) { if (Heists.take(p.cache)) { Sound.sfx('gold'); this.sparkle(p.x, p.y, 0xffd84a, 16); } return; }
     if (p.kind === 'gold') { const got = G.addSeeds(25); Sound.sfx('gold'); this.sparkle(p.x, p.y, 0xffd84a, 16); this.floatText(p.x, p.y - 30, `+${got} GOLDEN`, '#ffd84a', 16); G.save.golden++; G.persist(); MissionSys.golden(); }
     else if (p.kind === 'bag') { }
     else { const got = G.addSeeds(p.value); Sound.sfx('seed'); if (got > 0) this.floatText(p.x, p.y - 20, `+${got}`, '#ffe9a8', 12); else this.floatText(p.x, p.y - 20, 'SACK FULL', '#ff9a9a', 11); }
@@ -295,14 +299,20 @@ class CityScene extends WorldScene {
     return pts;
   }
   onBlock(d) {
-    const n = Phaser.Math.Clamp(d.count, 1, 5); this.goldenAround(n, d.to);
+    const cache = Heists.openBlock(d); if (!cache) return;
+    // At most one active cache; a newer observed block replaces any missed cache.
+    for (const p of this.pickups) if (p.cache && p.alive) { p.alive = false; p.spr.destroy(); if (p.glow) p.glow.destroy(); }
+    const routes = [[860,257], [368,257], [630,648], [520,285]];
+    const pt = routes[Number(BigInt(d.to) % 4n)];
+    const pos = this.walkableAt(this.w(pt[0]), this.w(pt[1])) ? {x:this.w(pt[0]), y:this.w(pt[1])} : this.randomWalkable(null);
+    if (pos) this.addSeed(pos.x, pos.y, 'gold', 25, { block: d.to, cache });
     G.save.stats.blocks++; G.persist(); Sound.sfx('block');
     BUS.emit('blockBanner', d);
     // lab burst
     const c = this.add.circle(this.w(CITY.wheel.x), this.w(CITY.wheel.y), 40, 0x6ad7ff, 0.6).setDepth(5002).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: c, scale: 12, alpha: 0, duration: 1400, onComplete: () => c.destroy() });
   }
-  missionGolden(n) { const have = this.pickups.filter(p => p.kind === 'gold').length; this.goldenAround(Math.max(n, n - have + 1), 'mission'); BUS.emit('banner', { text: 'GOLDEN SEEDS SPOTTED', sub: 'Check the minimap (gold dots)', color: '#ffd84a' }); }
+  missionGolden(n) { if (G.playMode !== 'practice') return; const have = this.pickups.filter(p => p.kind === 'gold').length; this.goldenAround(Math.max(n, n - have + 1), 'mission'); BUS.emit('banner', { text: 'GOLDEN SEEDS SPOTTED', sub: 'Check the minimap (gold dots)', color: '#ffd84a' }); }
   missionBags(pts) { this.bagSprites = pts.map(p => { const s = this.add.image(this.w(p[0]), this.w(p[1]), 'goldseed').setScale(0.5).setTint(0xc89a5a).setDepth(this.w(p[1])); return s; }); }
   clearMissionStuff() { if (this.bagSprites) { this.bagSprites.forEach(s => s.destroy()); this.bagSprites = null; } for (const e of this.enemies) if (e.smashTarget && e.alive) this.removeEnemy(e); }
   missionVehicle(s) {
@@ -317,9 +327,11 @@ class CityScene extends WorldScene {
   interactables() {
     const P = this.P, px = P.mover.x, py = P.mover.y; const list = [];
     const add = (x, y, r, label, fn, pri = 0) => { const d = Math.hypot(px - x, py - y); if (d < r) list.push({ d: d - pri, label, fn }); };
+    if (Heists.cargo) add(this.w(CITY.hideout.x), this.w(CITY.hideout.y), 110, G.stars ? 'Lose every star before extracting GOLDEN CARGO' : 'EXTRACT golden cargo at the hideout', () => Heists.bank(), 100);
     if (!MissionSys.a) {
+      add(this.w(CITY.hideout.x), this.w(CITY.hideout.y) + 28, 130, Live.wheelOpen() ? 'Start WHEEL HEIST — closes when Squeektoshi sleeps' : Live.canReward() ? 'WHEEL HEIST CLOSED — Squeektoshi is asleep' : 'SIGNAL LOST — payouts and heists held', () => { const def = Heists.contract(); if (def) MissionSys.start(def, this); }, 65);
       const nm = MissionSys.next();
-      add(this.w(CITY.hideout.x), this.w(CITY.hideout.y), 80, nm ? `Start mission: ${nm.title}` : 'All missions done!', () => nm && MissionSys.start(nm, this), 40);
+      add(this.w(CITY.hideout.x) + 140, this.w(CITY.hideout.y), 75, nm ? `Start mission: ${nm.title}` : 'All missions done!', () => nm && MissionSys.start(nm, this), 40);
       for (const j of SIDEJOBS) add(this.w(j.x), this.w(j.y), 80, `Side job: ${j.title}`, () => this.startSide(j), 30);
     }
     add(this.w(CITY.shop.x), this.w(CITY.shop.y), 80, 'Open the Seed Shop', () => BUS.emit('openShop'), 35);
@@ -334,10 +346,10 @@ class CityScene extends WorldScene {
       'When Squeektoshi runs fast enough the whole city gets the ZOOMIES: double loot! Keep an eye on the RPM.',
       'Robot vacuums are slow but they never give up. A fast car or a dash will lose them.',
       'Inside a hamster ball, cats can not touch you. Cars still can, though!',
-      'Every real block from the Squeekchain wheel drops golden seeds. Worth 25 each, more in the day.',
+      'A newly observed block opens one golden cache. It is cargo, not free money: lose heat and extract it at W. LIVE never simulates a block.',
       'Spend your seeds at the green $ shop. A bigger sack and Turbo Paws make life much easier.',
       'Stealing a car off the street is quick, but if a patrol sees you, you get a star.' ];
-    const lines = [['nibbles', nm ? `Your next job is "${nm.title}". Walk into the yellow ! right next to me and press E.` : 'You finished every job in town! Proud of you, kid. Side jobs and golden seeds are still out there.'], ['nibbles', Phaser.Utils.Array.GetRandom(tips)], ['nibbles', 'Need the full rundown? Press H (or the ? button) any time for my guide.']];
+    const lines = [['nibbles', nm ? `Your next job is "${nm.title}". Story jobs are just east of W. The W itself starts live Wheel Heists when Squeektoshi runs.` : 'You finished every job in town! Proud of you, kid. Side jobs and golden seeds are still out there.'], ['nibbles', Phaser.Utils.Array.GetRandom(tips)], ['nibbles', 'Need the full rundown? Press H (or the ? button) any time for my guide.']];
     BUS.emit('dialog', lines);
   }
   tutSkate() { const x = this.w(836), y = this.w(448); if (!this.vehicles.some(v => v.kind === 'skate' && Math.hypot(v.mover.x - x, v.mover.y - y) < 400)) { this.makeVehicle('skate', x, y, 0); this.sparkle(x, y, 0x7dff9a, 12); } this.tutSkatePos = { x, y }; }
@@ -371,6 +383,7 @@ class CityScene extends WorldScene {
     this.time.delayedCall(2300, () => this.respawn());
   }
   respawn(fromInterior) {
+    Heists.cargo = null;
     const lost = Math.floor(G.save.seeds * 0.2); G.save.seeds -= lost; G.save.stats.busted++; G.persist(); BUS.emit('seeds', -lost, 0);
     G.hp = 100; G.wantedT = 0; G.setStars(0); G.cool = 0; BUS.emit('hp');
     if (MissionSys.a) MissionSys.fail('You got squashed');
@@ -382,6 +395,7 @@ class CityScene extends WorldScene {
     G.frozen = false;
   }
   onPhase(s) {
+    this.spawnAmbient();
     const day = s === 'ACTIVE';
     BUS.emit('banner', day ? { text: 'SQUEEKTOSHI WOKE UP!', sub: 'Day mode: faster rides, more patrols, full pay', color: '#ffd166' } : { text: 'SQUEEKTOSHI FELL ASLEEP', sub: 'Night mode: stealthy, but loot x0.5', color: '#a98bff' });
     if (G.stars < 3) Sound.play(day ? 'day' : 'night');
@@ -392,11 +406,14 @@ class CityScene extends WorldScene {
     const g = this.markerG; g.clear(); const pulse = (Math.sin(time / 250) + 1) / 2;
     const ring = (x, y, r, col, a = 0.9) => { g.lineStyle(6, col, a); g.strokeCircle(x, y, r + pulse * 8); g.fillStyle(col, 0.18 + pulse * 0.1); g.fillCircle(x, y, r); };
     const showHide = !MissionSys.a;
-    this.hideoutIcon.setVisible(showHide && !!MissionSys.next()); this.sideIcons.forEach(t => t.setVisible(showHide));
+    this.storyIcon.setVisible(showHide && !!MissionSys.next());
+    this.hideoutIcon.setVisible(showHide || !!Heists.cargo).setColor(Live.wheelOpen() ? '#7dff9a' : '#b9a3ff'); this.sideIcons.forEach(t => t.setVisible(showHide));
     if (showHide && MissionSys.next()) ring(this.w(CITY.hideout.x), this.w(CITY.hideout.y), 44, 0xffd166);
     ring(this.w(CITY.shop.x), this.w(CITY.shop.y), 34, 0x7dff9a, 0.7);
     if (showHide) for (const j of SIDEJOBS) ring(this.w(j.x), this.w(j.y), 34, 0x6ad7ff, 0.7);
-    let t = MissionSys.target('city'); this.curTarget = null;
+    let t = Heists.cargo ? { x: CITY.hideout.x, y: CITY.hideout.y, kind: 'goto' } : MissionSys.target('city'); this.curTarget = null;
+    if (!t && Heists.cache && !Heists.cache.collected) t = { kind: 'golden' };
+    if (!t && !Helper.active()) t = { x: CITY.hideout.x, y: CITY.hideout.y, kind: 'goto' };
     if (!t && Helper.target() === 'hideout') t = { x: CITY.hideout.x, y: CITY.hideout.y, kind: 'door' };
     if (!t && Helper.active() && G.save.tut === 2 && this.tutSkatePos) t = { x: this.tutSkatePos.x / S, y: this.tutSkatePos.y / S, kind: 'door' };
     if (t) {
@@ -445,7 +462,7 @@ class CityScene extends WorldScene {
     if (this.vehicle && this.vehicle.speed > 160 && this.vehicle.def.ram !== false) for (const e of this.enemies) if (e.alive && e.stunT <= 0 && Math.hypot(e.mover.x - this.vehicle.mover.x, e.mover.y - this.vehicle.mover.y) < e.def.r + this.vehicle.def.r) this.stunEnemy(e, this.vehicle.mover);
     this.collectPickups();
     this.seedT -= dt; if (this.seedT <= 0) { this.seedT = 4; if (this.pickups.filter(p => p.kind === 'seed').length < 55) this.spawnSeed(); }
-    for (const p of this.pickups) if (p.kind === 'gold' && p.block !== 'mission' && time - p.born > 240000) { p.alive = false; p.spr.destroy(); p.glow && p.glow.destroy(); }
+    for (const p of this.pickups) if (p.alive && p.kind === 'gold' && ((p.cache && Date.now() >= p.cache.expires) || (p.block !== 'mission' && time - p.born > 240000))) { p.alive = false; p.spr.destroy(); p.glow && p.glow.destroy(); }
     // helper / tutorial
     const cp = this.playerPos(); const mvd = Math.hypot(cp.x - this.lastPos.x, cp.y - this.lastPos.y); this.lastPos = { x: cp.x, y: cp.y };
     Helper.tick(dt, { moved: mvd < 200 ? mvd : 0, inVeh: !!this.vehicle });

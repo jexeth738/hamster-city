@@ -6,12 +6,14 @@ const VIEW = (() => {
   const w = (el && el.clientWidth) || window.innerWidth, h = (el && el.clientHeight) || window.innerHeight;
   const long = Math.max(w, h), short = Math.max(1, Math.min(w, h));
   const touch = q.has('touch') || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  const portrait = w < h;
   const asp = Math.min(2.4, Math.max(16 / 9, long / short));
-  const gw = Math.round(720 * asp / 2) * 2, gh = 720;
+  const gw = portrait ? 720 : Math.round(720 * asp / 2) * 2, gh = portrait ? Math.round(720 * Math.min(h / w, 2.4) / 2) * 2 : 720;
   const css = Math.min(long / gw, short / gh); // CSS px per game px once in landscape
   let u = touch ? Math.min(1.6, Math.max(1, 0.72 / css)) : 1;
+  if (portrait) u = 1;
   if (q.has('ui')) u = parseFloat(q.get('ui')) || u;
-  return { gw, gh, u, touch, small: touch && short < 600 };
+  return { gw, gh, u, touch, portrait, small: touch && short < 600 };
 })();
 const GW = VIEW.gw, GH = VIEW.gh;
 const U = VIEW.u, UW = Math.round(GW / U), UH = Math.round(GH / U); // UI layer: zoomed so text stays legible on phones
@@ -279,13 +281,13 @@ const MISSIONS = [
   { id: 'm11', title: 'Proof of Squeek', giver: 'pixel', reward: 200,
     intro: [['pixel', "Fun fact: Squeekchain is a REAL hamster-powered blockchain. Squeektoshi runs on a wheel, blocks get mined."],
       ['pixel', "When he runs, the city wakes up. When he sleeps, it's night. Every new block drops GOLDEN SEEDS around town."],
-      ['pixel', "Collect 3 golden block-seeds. I'll mark them on your map."]],
+      ['pixel', "Extract 3 golden cargoes from newly observed wheel blocks. No mission-spawned blocks in LIVE. PRACTICE uses simulations."]],
     steps: [
       { t: 'golden', n: 3, text: 'Collect 3 GOLDEN BLOCK-SEEDS' },
     ],
-    outro: [['pixel', "Those seeds carry real block data. Squeektoshi's work, in your cheeks."]] },
+    outro: [['pixel', "You extracted three block-tagged cargoes. Those are game seeds, not SQK or on-chain assets."]] },
   { id: 'm12', title: 'Lab Recon', giver: 'pixel', reward: 250,
-    intro: [['pixel', "Final prep. The Squeekchain Lab guards the Genesis Golden Seed — the first seed ever mined."],
+    intro: [['pixel', "Final prep. Our fictional Lab guards a story prop called the Genesis Golden Seed. It is not a real chain asset."],
       ['pixel', "Upload my worm to 3 lab terminals. Security vacuums everywhere. Stay out of their sight."]],
     steps: [
       { t: 'enter', door: 'lab', text: 'Infiltrate the SQUEEKCHAIN LAB' },
@@ -294,7 +296,7 @@ const MISSIONS = [
     ],
     outro: [['pixel', "Security is looping old footage. Tomorrow... we go for the Genesis Seed."]] },
   { id: 'm13', title: 'Genesis Heist', giver: 'cheeks', reward: 1000,
-    intro: [['cheeks', "Everything led here. The Genesis Golden Seed. Block zero."],
+    intro: [['cheeks', "Everything led here. The Genesis Seed: a fictional trophy for our final story heist, not a token or an actual block."],
       ['turbo', "I left a getaway racer behind the Garage."],
       ['scar', "I'll keep the cats busy. Mostly."],
       ['pixel', "Grab the seed from the pedestal, and RUN. Five stars. No pressure."]],
@@ -307,7 +309,7 @@ const MISSIONS = [
       { t: 'lose', text: 'Shake off EVERYONE' },
       { t: 'goto', area: 'city', x: 787, y: 392, r: 30, text: 'Bring the Genesis Seed HOME' },
     ],
-    outro: [['cheeks', "Kid... you just robbed block zero. Squeek City is ours."],
+    outro: [['cheeks', "Kid... you pulled off our final story heist. Squeek City is ours."],
       ['pixel', "And Squeektoshi? He's still running. Every block he mines... we'll be there."],
       ['squeak', "THE END... for now. Thanks for playing! (Golden Squeek skin unlocked)"]] },
 ];

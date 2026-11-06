@@ -4,9 +4,9 @@
   <meta name="squeekchain-project" content="f2a29d3e-8c90-4b00-8c40-019a7dfeb4a8">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Squeek City: Grand Theft Hamster - live on Squeekchain</title>
-<meta name="description" content="A retro top-down GTA-style open-world heist game starring a hamster thief, driven live by Squeektoshi, the real hamster mining Squeekchain blocks.">
-<meta property="og:title" content="Squeek City: Grand Theft Hamster">
+<title>Squeek City — Wheel Heists on Squeekchain</title>
+<meta name="description" content="Squeektoshi controls your heists. Running opens the route, sleep closes it, and new observed wheel blocks unlock game payouts. LIVE has no simulated fallback. Separate local-only PRACTICE.">
+<meta property="og:title" content="Squeek City — Wheel Heists">
 <meta property="og:description" content="Open-world hamster heists powered LIVE by Squeektoshi on @squeekchain.">
 <!-- Social preview: these two URLs must be absolute. If you move to a custom domain, update them (see README "Custom domain"). -->
 <meta property="og:url" content="https://squeekcity.space/">
@@ -24,14 +24,12 @@ body { position: fixed; inset: 0; }
 #wrap { position: fixed; inset: 0; box-sizing: border-box; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 #game { width: 100%; height: 100%; overflow: hidden; }
 #game canvas { display: block; }
-#rotate { display: none; position: fixed; inset: 0; z-index: 10; background: rgba(5, 8, 22, 0.94); color: #ffd166; font-family: "Press Start 2P", monospace; text-align: center; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; box-sizing: border-box; }
-#rotate img { width: 110px; animation: tilt 1.6s ease-in-out infinite; image-rendering: auto; }
-#rotate p { margin: 0; font-size: 15px; line-height: 1.7; }
-#rotate small { font-family: VT323, monospace; font-size: 22px; color: #cfe6ff; }
-#rotate button { font-family: "Press Start 2P", monospace; font-size: 11px; color: #fff; background: #0a0f22; border: 2px solid #6ad7ff; border-radius: 10px; padding: 12px 16px; }
-#rotate button.main { border-color: #ffd166; color: #ffd166; font-size: 12px; }
-@keyframes tilt { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+#rotate { display: none; position: fixed; bottom: 30px; left: 12px; right: 12px; z-index: 10; background: #0a0f22ee; border: 1px solid #6ad7ff; color: #cfe6ff; font: 19px VT323, monospace; padding: 8px 12px; border-radius: 8px; align-items: center; justify-content: space-between; gap: 8px; }
+#rotate img, #rotate p { display: none; }
+#rotate small { font-size: 19px; }
+#rotate button { font: 16px VT323, monospace; color: #ffd166; background: #0a0f22; border: 1px solid #6ad7ff; border-radius: 4px; padding: 7px; }
 @media (orientation: portrait) and (pointer: coarse) { body:not(.portrait-ok) #rotate { display: flex; } }
+#chain-story { position: fixed; bottom: 0; left: 0; right: 0; padding: 3px 10px max(3px, env(safe-area-inset-bottom)); box-sizing: border-box; color: #cfe6ff; background: #050816ef; font: 16px/1.1 VT323, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 4; text-align: center; pointer-events: none; }
 .pre { position: absolute; left: -999px; font-family: "Press Start 2P"; } .pre2 { position: absolute; left: -999px; font-family: VT323; }
 /* online overlays: name prompt + leaderboard */
 .ol { position: fixed; inset: 0; z-index: 8; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)); box-sizing: border-box; touch-action: manipulation; -webkit-user-select: text; user-select: text; }
@@ -60,13 +58,14 @@ body { position: fixed; inset: 0; }
 </style>
 </head>
 <body>
+<aside id="chain-story" role="status" aria-live="polite">LIVE requires fresh hardware. PRACTICE is simulated and local-only. No wallet or tokens required.</aside>
 <div id="wrap"><div id="game"></div></div>
 <div id="rotate">
   <img src="assets/ham_classic_run.png" alt="">
   <p>ROTATE YOUR PHONE<br>TO LANDSCAPE</p>
-  <small>Squeek City plays best sideways</small>
-  <button class="main" id="fsBtn">FULLSCREEN + LANDSCAPE</button>
-  <button id="anyway">play in portrait anyway</button>
+  <small>Portrait works. Landscape gives more room.</small>
+  <button class="main" id="fsBtn">LANDSCAPE</button>
+  <button id="anyway">KEEP PORTRAIT</button>
 </div>
 <span class="pre">.</span><span class="pre2">.</span>
 <script src="lib/phaser.min.js"></script>
@@ -77,6 +76,7 @@ body { position: fixed; inset: 0; }
 <script src="js/cloud.js"></script>
 <script src="js/board.js"></script>
 <script src="js/mission.js"></script>
+<script src="js/heists.js"></script>
 <script src="js/helper.js"></script>
 <script src="js/world.js"></script>
 <script src="js/city.js"></script>

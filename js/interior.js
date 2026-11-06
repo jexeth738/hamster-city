@@ -62,16 +62,18 @@ class InteriorScene extends WorldScene {
   interact() {
     const P = this.P, px = P.mover.x, py = P.mover.y; let best = null, bd = 80;
     for (const m of this.mItems) { const d = Math.hypot(m.wx - px, m.wy - py); if (d < bd + 20) { bd = d; best = { label: m.label === 'cage' ? 'Open the cage' : m.label === 'genesis' ? 'TAKE THE GENESIS SEED' : 'Grab the loot', fn: () => this.takeMission(m) }; } }
-    if (!best) for (const l of this.loot) { if (!l.ready) continue; const d = Math.hypot(l.x - px, l.y - py); if (d < bd) { bd = d; best = { label: `Steal ${l.name} (+${Math.max(1, Math.round(l.v * Live.mult()))})`, fn: () => this.steal(l) }; } }
+    if (!best) for (const l of this.loot) { if (!l.ready) continue; const d = Math.hypot(l.x - px, l.y - py); if (d < bd) { bd = d; best = { label: `Steal ${l.name} (+${Math.max(0, Math.round(l.v * Live.mult()))})`, fn: () => this.steal(l) }; } }
     return best;
   }
   steal(l) {
+    if (!Live.canReward()) return;
     l.ready = false; l.spr.setVisible(false); l.sp.setVisible(false); G.lootCd[l.key] = Date.now() + 120000;
     const got = G.addSeeds(l.v); Sound.sfx('loot'); this.sparkle(l.x, l.y); this.floatText(l.x, l.y - 30, got > 0 ? `+${got}` : 'SACK FULL', got > 0 ? '#ffe066' : '#ff9a9a', 16);
     if (this.seenByGuard()) { G.crime(1, 'theft'); BUS.emit('banner', { text: 'SPOTTED!', sub: 'They saw you steal', color: '#ff7b7b', small: true }); }
     G.persist();
   }
   takeMission(m) {
+    if (!Live.canReward()) return;
     this.mItems = this.mItems.filter(o => o !== m); this.tweens.killTweensOf(m.spr); this.tweens.killTweensOf(m.glow); m.glow.destroy();
     Sound.sfx(m.label === 'genesis' ? 'gold' : 'loot'); this.sparkle(m.wx, m.wy, 0xffd84a, 18);
     if (m.label === 'cage') { m.spr.setTexture('ham_strawberry_run'); this.tweens.add({ targets: m.spr, x: this.exitZone.x, y: this.exitZone.y + 60, duration: 1600, onComplete: () => m.spr.destroy() }); this.floatText(m.wx, m.wy - 40, 'FREE!', '#ffb3d1', 18); }
@@ -81,6 +83,7 @@ class InteriorScene extends WorldScene {
     MissionSys.lootGot(m.i);
   }
   updateScans(dt) {
+    if (!Live.canReward()) return;
     const P = this.P; const g = this.gfx; g.clear(); const t = this.time.now;
     for (const s of this.scans) {
       if (s.done) continue; const d = Math.hypot(P.mover.x - s.x, P.mover.y - s.y);

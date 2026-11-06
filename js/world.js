@@ -164,7 +164,7 @@ class WorldScene extends Phaser.Scene {
       if (hostile && (sees || (e.state === 'chase' && this.time.now - e.lastSeen < 6000))) e.state = 'chase';
       else if (!hostile || this.time.now - e.lastSeen > 6000) e.state = e.path ? 'patrol' : (e.ambient ? 'wander' : 'search');
       e.sees = sees;
-      let vx = 0, vy = 0, sp = d.speed * (e.speedMul || 1) * (G.stars >= 4 ? 1.12 : 1) * (Live.isDay() ? 1 : 0.92);
+      let vx = 0, vy = 0, sp = d.speed * (e.speedMul || 1) * (G.stars >= 4 ? 1.12 : 1) * (Live.isDay() ? 1 : 0.92) * Live.chaseMul();
       if (e.state === 'chase') {
         let dir = null;
         if (sees) dir = { x: dx / dist, y: dy / dist }; else dir = this.flowDir(e.mover.x, e.mover.y);
@@ -223,9 +223,10 @@ class WorldScene extends Phaser.Scene {
     const p = Object.assign({ x, y, kind, value, spr, glow, alive: true, born: this.time.now }, extra); this.pickups.push(p); return p;
   }
   collectPickups() {
+    if (!Live.canReward() || G.frozen) return;
     const pp = this.playerPos(); const r = this.vehicle ? 60 : 44;
     for (const p of this.pickups) {
-      if (!p.alive) continue;
+      if (!p.alive || (p.cache && (Heists.cargo || p.cache.collected || Date.now() >= p.cache.expires))) continue;
       if (Math.abs(p.x - pp.x) < r && Math.abs(p.y - pp.y) < r) {
         p.alive = false; this.tweens.killTweensOf(p.spr);
         this.tweens.add({ targets: p.spr, y: p.y - 50, alpha: 0, scale: p.spr.scale * 1.6, duration: 350, onComplete: () => p.spr.destroy() });
@@ -254,6 +255,7 @@ class WorldScene extends Phaser.Scene {
   }
   // ---------- star decay ----------
   updateWanted(dt, anySees) {
+    if (!Live.canReward()) return;
     if (G.stars <= 0) { G.cool = 0; return; }
     G.wantedT = (G.wantedT || 0) + dt;
     if (anySees) { G.cool = 0; G.evading = false; return; }

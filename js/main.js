@@ -10,6 +10,15 @@
     scene: [BootScene, TitleScene, CityScene, InteriorScene, UIScene],
   });
   window.__game = game;
+  const story = document.getElementById('chain-story');
+  const describeWheel = () => {
+    if (!story) return;
+    story.textContent = `${G.playMode === 'practice' ? 'PRACTICE · SIMULATED · LOCAL SAVE ONLY' : 'LIVE · HARDWARE WHEEL'} | Squeektoshi: ${Live.canReward() ? (Live.isDay() ? 'RUNNING' : 'SLEEPING') : 'UNKNOWN'} | ${Live.rpm.toFixed(1)} RPM | ${G.playMode === 'practice' ? 'SIM' : 'PROJECTED'} #${fmtBlock(Live.height)} | ${Heists.label()}`;
+  };
+  BUS.on('live', describeWheel); BUS.on('mode', describeWheel); setInterval(describeWheel, 1000); describeWheel();
+  // Recalculate the logical viewport on orientation changes; don't force an orientation lock.
+  const orientation = matchMedia('(orientation: portrait)');
+  orientation.addEventListener('change', () => { G.persist(); location.reload(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) G.persist(); });
   setInterval(() => G.persist(), 10000);
 })();

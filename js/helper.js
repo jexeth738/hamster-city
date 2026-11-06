@@ -14,8 +14,8 @@ const HELP_PAGES = [
   ] },
   { title: 'MISSIONS & SEEDS', lines: [
     'Seeds are money. Pick them up on the street and steal them indoors.',
-    'Yellow ! at the park gazebo = the gang hideout. Press E there to',
-    'start the next STORY MISSION (13 in total, ending with the',
+    'W at the park gazebo = wheel contracts. Story jobs are just east.',
+    'STORY MISSIONS are fictional heists (13 in total, ending with the',
     'Genesis Heist at the Squeekchain Lab).',
     'Blue star markers = SIDE JOBS (Seed Courier, Vacuum Bash).',
     'Green $ = SEED SHOP: speed, bigger sack, dash, armor and skins.',
@@ -48,9 +48,13 @@ const HELP_PAGES = [
     'LIVE (top-right panel, updated every 5 seconds):',
     '  RUNNING  = DAY city: faster vehicles, more patrols, loot bonus',
     '  SLEEPING = NIGHT city: darker, guards see less, loot x0.5',
-    '  RPM      = higher RPM, bigger loot multiplier and car speed',
-    '  NEW BLOCK = GOLDEN SEEDS drop around the city (+25 each)',
-    '  ZOOMIES  = very high RPM: DOUBLE loot!',
+    '  RUNNING = WHEEL HEIST route open. Sleep cancels that contract.',
+    '  NEW OBSERVED BLOCK = one golden cache, 90 seconds to grab it.',
+    '  ZOOMIES = 70+ RPM: x2 loot AND x1.35 chase speed.',
+    '  Lose heat and extract cargo at W; wheel jobs await a new block.',
+    '  SIGNAL LOST = payouts held. No fake LIVE events or catch-up.',
+    '  PRACTICE = simulated, separate local save, no online writes.',
+    '  PROJECTED blocks are optimistic, not Ethereum settlement.',
   ] },
 ];
 function showHelp(scene, onClose, startPage = 0) {
@@ -86,8 +90,8 @@ const Helper = {
     { say: 'See that skateboard I left you? Walk up to it and press E to ride it.', touchSay: 'See that skateboard I left you? Walk up to it and tap A to ride it.', done: c => c.inVeh, spawnSkate: true },
     { say: 'Wheee! Steer around a bit, then press E again to hop off. (In cars, hold SHIFT/SPACE to drift.)', touchSay: 'Wheee! Steer with the joystick, then tap A again to hop off. (In cars, hold B to drift.)', done: c => c.t > 3 && !c.inVeh },
     { say: 'Look top-right: the LIVE panel. Squeektoshi is a REAL hamster on a REAL wheel. When he runs, our city is in DAY mode. When he sleeps, it is NIGHT.', done: c => c.t > 9 },
-    { say: 'Every real block he mines drops GOLDEN SEEDS around town (gold dots on the minimap). Press M for the big map and H for my full guide any time.', done: c => c.t > 9 },
-    { say: 'Last thing: walk to the yellow ! at the park gazebo (follow the arrow) and press E. Don Cheeks has your first job. Good luck, kid!', done: c => !!MissionSys.a || G.save.missions > 0, target: 'hideout' },
+    { say: 'An observed new block opens ONE golden cache (gold dot), not a free payout. Grab it in 90 seconds, lose every star, then bank the cargo at W. PRACTICE blocks are simulated.', done: c => c.t > 9 },
+    { say: 'Head to W for a Wheel Heist while Squeektoshi runs. Story jobs are just east of W. Wheel pay waits for a newly observed block; sleep shuts the contract. H opens the guide.', done: c => !!MissionSys.a || G.save.missions > 0, target: 'hideout' },
   ],
   active() { return G.save.tut !== undefined && G.save.tut >= 0 && G.save.tut < this.steps.length; },
   begin() { if (G.save.tut === undefined) G.save.tut = 0; if (this.active()) this.show(); },
@@ -114,11 +118,11 @@ const STEP_TIPS = {
   checkpoints: 'Hit each glowing ring in order. The arrow always points to the next one.',
   survive: 'Just stay alive! Keep moving, use your dash, and grab a vehicle if you can.',
   scan: 'Stand still inside the blue circle until the bar fills. Stay out of the robo-vacuums\' sight.',
-  golden: 'Golden seeds are the gold dots on your minimap. Real Squeekchain blocks drop more!',
+  golden: 'Golden seeds are the gold dots on your minimap. LIVE needs newly observed blocks; PRACTICE is simulated.',
   smash: 'Drive fast into the red robo-vacuums to smash them.',
 };
 BUS.on('objective', () => { const s = MissionSys.step(); if (!s || !MissionSys.a) return; const key = MissionSys.a.def.id + ':' + MissionSys.a.i; if (Helper._last === key) return; Helper._last = key; const t = STEP_TIPS[s.t]; if (t && G.save.missions < 6) Helper.tip(t); });
 BUS.on('stars', (n, up) => { if (up && n >= 1) Helper.hint('wanted', 'Uh oh, you are WANTED! Run, break line of sight and hide in hedges to make the stars go away.'); if (up && n >= 4) Helper.hint('pest', 'Four stars means the PEST CONTROL van! It sticks to roads, so cut through parks and yards.'); });
-BUS.on('block', () => Helper.hint('golden', 'A real Squeekchain block was just mined! Golden seeds dropped around the city. Check the gold dots on your minimap.'));
-BUS.on('phase', s => { if (s === 'IDLE') Helper.hint('night', 'Squeektoshi went to sleep, so it is NIGHT. Guards see less, but loot only pays half. Great time for sneaky jobs.'); else Helper.hint('day', 'Squeektoshi is running! DAY mode: faster rides, more patrols, and an RPM loot bonus.'); });
+BUS.on('block', d => Helper.hint('golden', `${d.simulated ? 'SIMULATED' : 'New observed/projected'} block #${fmtBlock(d.to)}: one golden cache. Grab it, lose heat, extract at W. Nothing is minted on-chain.`));
+BUS.on('phase', s => { if (s === 'IDLE') Helper.hint('night', 'Squeektoshi went to sleep, so it is NIGHT. Guards see less, but loot only pays half. Great time for sneaky jobs.'); else Helper.hint('day', 'Squeektoshi is running! DAY mode: faster rides, more patrols, and the Wheel Heist window.'); });
 BUS.on('seeds', (got, lost) => { if (got > 0) Helper.onSeed(1); if (lost > 0 && got === 0) Helper.hint('sack', 'Your sack is full! Buy BIGGER CHEEKS at the green $ shop next to the hideout.'); if (G.save.seeds >= 80 && !G.save.up.speed && !G.save.up.dash) Helper.hint('shop', 'You have enough seeds to shop! The green $ next to the hideout sells speed, dash, armor and skins.'); });

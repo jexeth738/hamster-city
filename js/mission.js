@@ -3,10 +3,11 @@ const MissionSys = {
   a: null, // active {def, i, t, timer, data}
   next() { return MISSIONS[G.save.missions] || null; },
   start(def, scene) {
-    if (this.a) return;
+    if (this.a || !Live.canReward() || (def.wheel && !Live.wheelOpen())) return;
     Sound.sfx('select');
     BUS.emit('dialog', def.intro, () => {
-      this.a = { def, i: -1, data: {}, timer: null, side: def.side || false };
+      if (!Live.canReward() || (def.wheel && !Live.wheelOpen())) return;
+      this.a = { def, identity: Live.identity, i: -1, data: {}, timer: null, side: def.side || false };
       BUS.emit('banner', { text: def.title.toUpperCase(), sub: def.side ? 'SIDE JOB' : `MISSION ${MISSIONS.indexOf(def) + 1} / ${MISSIONS.length}`, color: '#ffd166' });
       this.advance();
     });
@@ -21,7 +22,8 @@ const MissionSys = {
       case 'stars': G.setStars(Math.max(G.stars, s.n), 'mission'); G.cool = 0; return this.advance();
       case 'vehicle': if (s.spawn) BUS.emit('spawnVehicle', s.spawn); break;
       case 'checkpoints': a.data.cp = 0; if (s.bags) BUS.emit('missionBags', s.pts); break;
-      case 'golden': a.data.got = 0; BUS.emit('missionGolden', s.n); break;
+      case 'golden': a.data.got = 0; if (G.playMode === 'practice') BUS.emit('missionGolden', s.n); break;
+      case 'block': a.data.serial = Live.blockSerial; break;
       case 'loot': a.data.got = []; break;
       case 'scan': a.data.done = []; a.data.prog = 0; break;
       case 'smash': a.data.got = 0; BUS.emit('sideSmash', s.n); break;
@@ -30,9 +32,12 @@ const MissionSys = {
   },
   // called by scenes each frame
   tick(dt, ctx) {
-    const a = this.a; if (!a || G.frozen) return; const s = this.step(); if (!s) return;
+    const a = this.a; if (!a || G.frozen || !Live.canReward()) return;
+    if (a.def.wheel && G.playMode === 'live' && a.identity && a.identity !== Live.identity) return this.fail('Wheel counter changed — start a new contract');
+    if (a.def.wheel && !Live.wheelOpen()) return this.fail('Squeektoshi is asleep — wheel window closed'); const s = this.step(); if (!s) return;
     if (a.timer !== null) { a.timer -= dt; if (a.timer <= 0) { a.timer = 0; if (s.t === 'survive') return this.advance(); return this.fail("Time's up!"); } }
     switch (s.t) {
+      case 'block': if (Live.blockSerial > a.data.serial) this.advance(); break;
       case 'enter': if (ctx.area !== 'city' && ctx.door === s.door) { a.door = ctx.door; this.advance(); } break;
       case 'exit': if (ctx.area === 'city') this.advance(); break;
       case 'goto': if (ctx.area === 'city' && Math.hypot(ctx.mx - s.x, ctx.my - s.y) < s.r + (ctx.veh ? 14 : 0)) { if (s.kind === 'any' && !ctx.veh && s.time) break; this.advance(); } break;
@@ -76,16 +81,20 @@ const MissionSys = {
     if (s.t === 'loot') t += `  ${a.data.got.length}/${s.items.length}`;
     if (s.t === 'scan') t += `  ${a.data.done.length}/${s.pts.length}`;
     if (s.t === 'checkpoints') t += `  ${a.data.cp}/${s.pts.length}` + (a.data.needVeh ? `  (need ${s.kind === 'ball' ? 'HAMSTER BALL' : 'SKATEBOARD'})` : '');
+    if (s.t === 'block') t += G.playMode === 'practice' ? ' (SIMULATED)' : ' (LIVE, no timer shortcut)';
     if (s.t === 'golden') t += `  ${a.data.got}/${s.n}`;
     if (s.t === 'smash') t += `  ${a.data.got}/${s.n}`;
     return t;
   },
   complete() {
-    const a = this.a; this.a = null; const def = a.def;
-    G.addSeeds(def.reward, true);
+    const a = this.a; if (!a || !Live.canReward()) return;
+    if (a.def.wheel && !Live.wheelOpen()) return this.fail('Wheel window closed');
+    this.a = null; const def = a.def;
+    const got = G.addSeeds(def.reward);
+    if (def.wheel) G.save.wheelHeists++;
     if (!def.side) { G.save.missions = Math.max(G.save.missions, MISSIONS.indexOf(def) + 1); if (def.id === 'm13' && !G.save.skins.includes('golden')) G.save.skins.push('golden'); }
     G.persist(); Sound.sfx('mission');
-    BUS.emit('bigText', { text: def.side ? 'JOB DONE!' : 'MISSION PASSED!', sub: `+${def.reward} SEEDS`, color: '#ffd166' });
+    BUS.emit('bigText', { text: def.side ? 'JOB DONE!' : 'MISSION PASSED!', sub: `+${got} SEEDS`, color: '#ffd166' });
     BUS.emit('objective'); BUS.emit('missionDone', def);
     if (def.outro) setTimeout(() => BUS.emit('dialog', def.outro, () => { if (def.id === 'm13') BUS.emit('credits'); }), 1800);
   },
@@ -94,3 +103,6 @@ const MissionSys = {
     BUS.emit('bigText', { text: 'MISSION FAILED', sub: reason || '', color: '#ff5a5a' }); BUS.emit('objective'); BUS.emit('missionFail', def);
   },
 };
+
+// Sleep closes a wheel contract even while a menu/dialog pauses the world scene.
+BUS.on('phase', status => { if (status === 'IDLE' && MissionSys.a && MissionSys.a.def.wheel) MissionSys.fail('Squeektoshi is asleep — wheel window closed'); });
