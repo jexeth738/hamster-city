@@ -56,7 +56,7 @@ class UIScene extends Phaser.Scene {
     this.bigT = this.add.text(UW / 2, UH / 2 - 40, '', { fontFamily: P2, fontSize: '46px', color: '#ffd166', stroke: '#1a0f00', strokeThickness: 10 }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.bigS = this.add.text(UW / 2, UH / 2 + 20, '', { fontFamily: P2, fontSize: '18px', color: '#ffffff', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0).setDepth(50);
     this.edgeArrow = this.add.triangle(0, 0, 0, 0, 30, 12, 0, 24, 0xffd166).setStrokeStyle(3, 0x3a2400).setVisible(false);
-    this.zoomFx = this.add.text(UW / 2, UH - 22, 'ZOOMIES! x2', { fontFamily: P2, fontSize: '18px', color: '#ff7bd5', stroke: '#2a0020', strokeThickness: 6 }).setOrigin(0.5).setVisible(false);
+    this.zoomFx = this.add.text(UW / 2, UH - 64, 'ZOOMIES! x2', { fontFamily: P2, fontSize: '18px', color: '#ff7bd5', stroke: '#2a0020', strokeThickness: 6 }).setOrigin(0.5).setVisible(false);
     // ---- touch controls ----
     if (this.touch) this.buildTouch();
     this.pauseBtn = this.add.text(14, this.touch ? 134 : 140, this.touch ? 'II' : 'ESC: menu', { fontFamily: P2, fontSize: this.touch ? '20px' : '9px', color: '#ffffff', backgroundColor: '#0a0f22cc', padding: { x: 10, y: 8 } }).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.togglePause());

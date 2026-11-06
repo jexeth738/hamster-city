@@ -24,12 +24,13 @@ class TitleScene extends Phaser.Scene {
     this.tweens.add({ targets: bg, scale: bg.scale * 1.06, duration: 14000, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     this.add.rectangle(0, 0, W, H, 0x050816, 0.2).setOrigin(0);
     const grad = this.add.graphics(); grad.fillGradientStyle(0x050816, 0x050816, 0x050816, 0x050816, 0.9, 0.9, 0, 0); grad.fillRect(0, 0, W, sm ? 200 : 240);
-    const t1 = this.add.text(W / 2, sm ? 30 : 64, 'SQUEEK CITY', { fontFamily: P2, fontSize: sm ? '38px' : '64px', color: '#ffd166', stroke: '#3a1d00', strokeThickness: 12 }).setOrigin(0.5);
+    const t1 = this.add.text(W / 2, VIEW.portrait ? 104 : sm ? 30 : 64, 'SQUEEK CITY', { fontFamily: P2, fontSize: sm ? '38px' : '64px', color: '#ffd166', stroke: '#3a1d00', strokeThickness: 12 }).setOrigin(0.5);
+    fitText(t1, W - 50, 28);
     t1.setShadow(6, 6, '#000000', 0, true, true);
-    this.add.text(W / 2, sm ? 70 : 128, 'THE WHEEL RUNS THIS CITY', { fontFamily: P2, fontSize: sm ? '14px' : '22px', color: '#ff7b5a', stroke: '#1a0500', strokeThickness: 8 }).setOrigin(0.5);
-    fitText(this.add.text(W / 2, sm ? 98 : 164, 'Run = heists open. Sleep = doors close. New blocks = extraction pay.', { fontFamily: VT, fontSize: '26px', color: '#cfe6ff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5), W - 40);
+    this.add.text(W / 2, VIEW.portrait ? 170 : sm ? 70 : 128, 'THE WHEEL RUNS THIS CITY', { fontFamily: P2, fontSize: sm ? '14px' : '22px', color: '#ff7b5a', stroke: '#1a0500', strokeThickness: 8 }).setOrigin(0.5);
+    fitText(this.add.text(W / 2, VIEW.portrait ? 214 : sm ? 98 : 164, 'Run = heists open. Sleep = doors close. New blocks = extraction pay.', { fontFamily: VT, fontSize: '26px', color: '#cfe6ff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5), W - 40);
     this.tweens.add({ targets: t1, scale: 1.04, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.inOut' });
-    this.chipMax = W - 30; this.chip = this.add.text(W / 2, sm ? 145 : 234, '', { fontFamily: VT, fontSize: '23px', align: 'center', wordWrap: { width: W - 80 }, color: '#fff', backgroundColor: '#0a0f22dd', padding: { x: 12, y: 8 } }).setOrigin(0.5);
+    this.chipMax = W - 30; this.chip = this.add.text(W / 2, VIEW.portrait ? 300 : sm ? 145 : 234, '', { fontFamily: VT, fontSize: '23px', align: 'center', wordWrap: { width: W - 80 }, color: '#fff', backgroundColor: '#0a0f22dd', padding: { x: 12, y: 8 } }).setOrigin(0.5);
     this.items = [];
     const add = (label, fn) => this.items.push({ label, fn });
     add('PLAY LIVE · REAL WHEEL', () => this.go('live'));
@@ -44,7 +45,7 @@ class TitleScene extends Phaser.Scene {
       return { bg, t };
     });
     this.drawMenu();
-    this.add.text(W / 2, H - 6, VIEW.touch ? 'Left thumb: joystick  ·  A = interact  ·  B = dash  ·  II = pause  ·  ? = help' : 'WASD/Arrows move · E interact · Shift dash · H help · P pause · touch controls on mobile', { fontFamily: VT, fontSize: sm ? '18px' : '20px', color: '#cfd8ee', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1);
+    this.add.text(W / 2, H - 34, VIEW.portrait ? 'DRAG TO MOVE · A INTERACT · B DASH · ? HELP' : VIEW.touch ? 'Left thumb: joystick  ·  A = interact  ·  B = dash  ·  II = pause  ·  ? = help' : 'WASD/Arrows move · E interact · Shift dash · H help · P pause · touch controls on mobile', { fontFamily: VT, fontSize: sm ? '18px' : '20px', color: '#cfd8ee', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 1);
     if (VIEW.touch && this.sys.game.device.fullscreen.available) this.add.text(W - 14, 14, '[ ] FULLSCREEN', { fontFamily: P2, fontSize: '11px', color: '#9ff0ff', backgroundColor: '#0a0f22cc', padding: { x: 10, y: 10 } }).setOrigin(1, 0).setInteractive({ useHandCursor: true }).on('pointerup', () => toggleFull(this));
     this.input.keyboard.on('keydown', e => { Sound.resume(); Sound.play('title'); if (this.helpBox) return; const k = e.key.toLowerCase(); if (k === 'arrowup' || k === 'w') { this.sel = (this.sel + this.items.length - 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'arrowdown' || k === 's') { this.sel = (this.sel + 1) % this.items.length; this.drawMenu(); Sound.sfx('blip'); } if (k === 'enter' || k === 'e' || k === ' ') this.pick(); if (k === 'h') this.help(); if (k === 'l') this.board(); });
     this.input.on('pointerdown', () => { Sound.resume(); Sound.play('title'); });
